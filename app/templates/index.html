@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Specific Page Title{% endblock %}
+
+{% block content %}
+    <h1>Welcome to this page</h1>
+    <p>Your page-specific content goes here...</p>
+{% endblock %}
