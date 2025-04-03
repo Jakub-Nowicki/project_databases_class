@@ -3,107 +3,209 @@
 {% block title %}Student Detail{% endblock %}
 
 {% block content %}
-    <div class="row">
-        <div class="col-12 mb-3">
-            <a href="{{ url_for('list_students') }}" class="btn btn-secondary">&larr; Back to Students List</a>
-        </div>
-        <div class="col-md-4">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">Student Information</h5>
-                </div>
-                <div class="card-body">
-                    <h2 class="mb-3">{{ student[1] }}</h2>
-                    <p><strong>ID:</strong> {{ student[0] }}</p>
-                    <p><strong>Age:</strong> {{ student[2] }}</p>
-                    <p><strong>Email:</strong> {{ student[3] }}</p>
-                    <p><strong>Major:</strong> {{ student[4] }}</p>
-                    <p><strong>Department:</strong> {{ student[5] }}</p>
-                    
-                    {% if gpa %}
-                    <div class="alert alert-info mt-3">
-                        <h5>Academic Performance</h5>
-                        <p><strong>Current GPA:</strong> {{ gpa|round(2) }} / 4.0</p>
-                        <p><strong>Completed Credits:</strong> {{ completed_credits }}</p>
-                        <p><strong>Enrolled Credits:</strong> {{ current_credits }}</p>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0 rounded-lg mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('list_students') }}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                        <h2 class="mb-0 text-center flex-grow-1">Student Profile</h2>
+                        <div style="width: 70px;"></div> <!-- Empty div for balance -->
                     </div>
-                    {% endif %}
                 </div>
-            </div>
-        </div>
-        
-        <div class="col-md-8">
-            <!-- Current Enrollments -->
-            <div class="card mb-4">
-                <div class="card-header bg-info text-white">
-                    <h5 class="card-title mb-0">Currently Enrolled Courses</h5>
-                </div>
-                <div class="card-body">
-                    {% if current_courses %}
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Course Name</th>
-                                    <th>Credits</th>
-                                    <th>Semester</th>
-                                    <th>Instructor</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for course in current_courses %}
-                                <tr>
-                                    <td>{{ course[0] }}</td>
-                                    <td>{{ course[1] }}</td>
-                                    <td>{{ course[2] }}</td>
-                                    <td>{{ course[4] or "Unassigned" }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% else %}
-                        <div class="alert alert-info">
-                            This student is not currently enrolled in any courses.
+
+                <div class="card-body bg-light">
+                    <div class="row">
+                        <!-- Student Information Card -->
+                        <div class="col-md-4">
+                            <div class="card shadow-sm mb-4 border-0">
+                                <div class="card-header bg-dark text-white">
+                                    <h5 class="card-title mb-0">Student Information</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center mb-3">
+                                        <div class="avatar-circle mb-3">
+                                            <span class="initials">{{ student[1][0] }}</span>
+                                        </div>
+                                        <h3>{{ student[1] }}</h3>
+                                        <p class="text-muted">ID: {{ student[0] }}</p>
+                                    </div>
+
+                                    <div class="student-details">
+                                        <div class="row mb-2">
+                                            <div class="col-md-3"><strong>Age:</strong></div>
+                                            <div class="col-md-9">{{ student[2] }}</div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-3"><strong>Email:</strong></div>
+                                            <div class="col-md-9 text-break">{{ student[3] }}</div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-3"><strong>Major:</strong></div>
+                                            <div class="col-md-9">{{ student[4] }}</div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-3"><strong>Department:</strong></div>
+                                            <div class="col-md-9">{{ student[5] }}</div>
+                                        </div>
+                                    </div>
+
+                                    {% if gpa %}
+                                    <div class="alert alert-dark mt-3">
+                                        <h5 class="border-bottom pb-2">Academic Performance</h5>
+                                        <div class="row mt-3">
+                                            <div class="col-6 text-center border-end">
+                                                <h2>{{ gpa|round(2) }}</h2>
+                                                <p class="text-muted mb-0">GPA</p>
+                                            </div>
+                                            <div class="col-6 text-center">
+                                                <h2>{{ completed_credits }}</h2>
+                                                <p class="text-muted mb-0">Credits</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <!-- Completed Courses -->
-            <div class="card">
-                <div class="card-header bg-success text-white">
-                    <h5 class="card-title mb-0">Completed Courses</h5>
-                </div>
-                <div class="card-body">
-                    {% if completed_courses %}
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Course Name</th>
-                                    <th>Credits</th>
-                                    <th>Semester</th>
-                                    <th>Grade</th>
-                                    <th>Instructor</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for course in completed_courses %}
-                                <tr>
-                                    <td>{{ course[0] }}</td>
-                                    <td>{{ course[1] }}</td>
-                                    <td>{{ course[2] }}</td>
-                                    <td>{{ course[3] }}</td>
-                                    <td>{{ course[4] or "Unassigned" }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% else %}
-                        <div class="alert alert-info">
-                            This student has not completed any courses yet.
+
+                        <div class="col-md-8">
+                            <!-- Current Enrollments -->
+                            <div class="card mb-4 shadow-sm border-0">
+                                <div class="card-header bg-secondary text-white">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-book-reader me-2"></i>
+                                        Currently Enrolled Courses
+                                    </h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    {% if current_courses %}
+                                        <table class="table table-hover mb-0">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Course Name</th>
+                                                    <th>Credits</th>
+                                                    <th>Semester</th>
+                                                    <th>Instructor</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for course in current_courses %}
+                                                <tr>
+                                                    <td>{{ course[0] }}</td>
+                                                    <td>{{ course[1] }}</td>
+                                                    <td>{{ course[2] }}</td>
+                                                    <td>{{ course[4] or "Unassigned" }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% else %}
+                                        <div class="alert alert-secondary m-3">
+                                            This student is not currently enrolled in any courses.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Completed Courses -->
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-secondary text-white">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-graduation-cap me-2"></i>
+                                        Completed Courses
+                                    </h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    {% if completed_courses %}
+                                        <table class="table table-hover mb-0">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Course Name</th>
+                                                    <th>Credits</th>
+                                                    <th>Semester</th>
+                                                    <th>Grade</th>
+                                                    <th>Instructor</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for course in completed_courses %}
+                                                <tr>
+                                                    <td>{{ course[0] }}</td>
+                                                    <td>{{ course[1] }}</td>
+                                                    <td>{{ course[2] }}</td>
+                                                    <td>
+                                                        <span class="badge
+                                                            {% if course[3].startswith('A') %}bg-success{%
+                                                            elif course[3].startswith('B') %}bg-primary{%
+                                                            elif course[3].startswith('C') %}bg-warning text-dark{%
+                                                            elif course[3].startswith('D') %}bg-danger{%
+                                                            else %}bg-dark{% endif %}">
+                                                            {{ course[3] }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ course[4] or "Unassigned" }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% else %}
+                                        <div class="alert alert-secondary m-3">
+                                            This student has not completed any courses yet.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
-                    {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
+
+<style>
+    .avatar-circle {
+        width: 100px;
+        height: 100px;
+        background-color: #343a40;
+        text-align: center;
+        border-radius: 50%;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .initials {
+        font-size: 40px;
+        line-height: 1;
+        color: #fff;
+        font-weight: bold;
+    }
+
+    .student-details .row {
+        padding-bottom: 0.75rem;
+        margin-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+        display: flex;
+        align-items: flex-start;
+    }
+
+    .student-details .row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .student-details .row div {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+</style>
+
+<!-- Add Font Awesome for icons -->
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 {% endblock %}

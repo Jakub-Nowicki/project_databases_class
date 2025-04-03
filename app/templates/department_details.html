@@ -4,120 +4,132 @@
 
 {% block content %}
 <div class="container">
-    <div class="row">
-        <div class="col-12 mb-3">
-            <a href="{{ url_for('list_departments') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Departments
-            </a>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-warning text-white">
-                    <h5 class="card-title mb-0">Department Information</h5>
-                </div>
-                <div class="card-body">
-                    <div class="text-center mb-4">
-                        <div class="dept-icon mb-3">
-                            <i class="fas fa-university fa-3x"></i>
-                        </div>
-                        <h2>{{ department.name }}</h2>
-                        <div class="badge bg-warning text-dark mb-3">
-                            {{ department.course_count }} Courses • {{ department.student_count }} Students
-                        </div>
-                    </div>
-                    
-                    <div class="department-head mb-4">
-                        <h5 class="border-bottom pb-2">Department Head</h5>
-                        <div class="d-flex align-items-center">
-                            <div class="head-avatar me-3">
-                                <span class="head-initials">{{ department.head_of_department[0] }}</span>
-                            </div>
-                            <div>
-                                <h6 class="mb-0">{{ department.head_of_department }}</h6>
-                                <small class="text-muted">Department Chair</small>
-                            </div>
-                        </div>
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0 rounded-lg mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('list_departments') }}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                        <h2 class="mb-0 text-center flex-grow-1">Department Details</h2>
+                        <div style="width: 70px;"></div> <!-- Empty div for balance -->
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <div class="col-md-8">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-info text-white">
-                    <h5 class="card-title mb-0">Faculty Members</h5>
-                </div>
-                <div class="card-body">
-                    {% if department.instructors %}
-                        <div class="list-group">
-                            {% for instructor in department.instructors %}
-                            <a href="{{ url_for('instructor_detail', id=instructor.id) }}" class="list-group-item list-group-item-action">
-                                <div class="d-flex w-100 justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">{{ instructor.name }}</h6>
-                                        <small class="text-muted">{{ instructor.email }}</small>
-                                    </div>
-                                    <span class="badge bg-primary rounded-pill">{{ instructor.course_count }} courses</span>
+
+                <div class="card-body bg-light">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card shadow-sm mb-4 border-0">
+                                <div class="card-header bg-dark text-white">
+                                    <h5 class="card-title mb-0">Department Information</h5>
                                 </div>
-                            </a>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <div class="alert alert-info">
-                            No faculty members assigned to this department.
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div class="card shadow-sm">
-                <div class="card-header bg-success text-white">
-                    <h5 class="card-title mb-0">Department Courses</h5>
-                </div>
-                <div class="card-body">
-                    {% if department.courses %}
-                        <div class="accordion" id="courseAccordion">
-                            {% for semester, courses in department.courses.items() %}
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="heading{{ loop.index }}">
-                                    <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" 
-                                            type="button" 
-                                            data-bs-toggle="collapse" 
-                                            data-bs-target="#collapse{{ loop.index }}" 
-                                            aria-expanded="{% if loop.first %}true{% else %}false{% endif %}" 
-                                            aria-controls="collapse{{ loop.index }}">
-                                        {{ semester }} <span class="badge bg-success ms-2">{{ courses|length }} courses</span>
-                                    </button>
-                                </h2>
-                                <div id="collapse{{ loop.index }}" 
-                                     class="accordion-collapse collapse {% if loop.first %}show{% endif %}" 
-                                     aria-labelledby="heading{{ loop.index }}" 
-                                     data-bs-parent="#courseAccordion">
-                                    <div class="accordion-body p-0">
-                                        <div class="list-group list-group-flush">
-                                            {% for course in courses %}
-                                            <div class="list-group-item">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <h6 class="mb-0">{{ course.course_name }}</h6>
-                                                        <small class="text-muted">{{ course.credits }} credits • Instructor: {{ course.instructor_name or "Unassigned" }}</small>
-                                                    </div>
-                                                    <span class="badge bg-primary rounded-pill">{{ course.enrolled_count }} enrolled</span>
-                                                </div>
+                                <div class="card-body">
+                                    <div class="text-center mb-4">
+                                        <div class="dept-icon mb-3">
+                                            <i class="fas fa-university fa-3x"></i>
+                                        </div>
+                                        <h2>{{ department.name }}</h2>
+                                        <div class="badge bg-secondary text-white mb-3">
+                                            {{ department.course_count }} Courses • {{ department.student_count }} Students
+                                        </div>
+                                    </div>
+
+                                    <div class="department-head mb-4">
+                                        <h5 class="border-bottom pb-2">Department Head</h5>
+                                        <div class="d-flex align-items-center">
+                                            <div class="head-avatar me-3">
+                                                <span class="head-initials">{{ department.head_of_department[0] }}</span>
                                             </div>
-                                            {% endfor %}
+                                            <div>
+                                                <h6 class="mb-0">{{ department.head_of_department }}</h6>
+                                                <small class="text-muted">Department Chair</small>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            {% endfor %}
                         </div>
-                    {% else %}
-                        <div class="alert alert-info">
-                            No courses currently offered by this department.
+
+                        <div class="col-md-8">
+                            <div class="card shadow-sm mb-4 border-0">
+                                <div class="card-header bg-secondary text-white">
+                                    <h5 class="card-title mb-0">Faculty Members</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if department.instructors %}
+                                        <div class="list-group">
+                                            {% for instructor in department.instructors %}
+                                            <a href="{{ url_for('instructor_detail', id=instructor.id) }}" class="list-group-item list-group-item-action">
+                                                <div class="d-flex w-100 justify-content-between align-items-center">
+                                                    <div>
+                                                        <h6 class="mb-1">{{ instructor.name }}</h6>
+                                                        <small class="text-muted">{{ instructor.email }}</small>
+                                                    </div>
+                                                    <span class="badge bg-dark rounded-pill">{{ instructor.course_count }} courses</span>
+                                                </div>
+                                            </a>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-secondary">
+                                            No faculty members assigned to this department.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-secondary text-white">
+                                    <h5 class="card-title mb-0">Department Courses</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if department.courses %}
+                                        <div class="accordion" id="courseAccordion">
+                                            {% for semester, courses in department.courses.items() %}
+                                            <div class="accordion-item mb-2 shadow-sm border-0">
+                                                <h2 class="accordion-header" id="heading{{ loop.index }}">
+                                                    <button class="accordion-button collapsed bg-dark text-white"
+                                                            type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#collapse{{ loop.index }}"
+                                                            aria-expanded="false"
+                                                            aria-controls="collapse{{ loop.index }}">
+                                                        {{ semester }} <span class="badge bg-light text-dark ms-2">{{ courses|length }} courses</span>
+                                                    </button>
+                                                </h2>
+                                                <div id="collapse{{ loop.index }}"
+                                                     class="accordion-collapse collapse"
+                                                     aria-labelledby="heading{{ loop.index }}"
+                                                     data-bs-parent="#courseAccordion">
+                                                    <div class="accordion-body p-0">
+                                                        <div class="list-group list-group-flush">
+                                                            {% for course in courses %}
+                                                            <div class="list-group-item">
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <div>
+                                                                        <h6 class="mb-0">{{ course.course_name }}</h6>
+                                                                        <small class="text-muted">{{ course.credits }} credits • Instructor: {{ course.instructor_name or "Unassigned" }}</small>
+                                                                    </div>
+                                                                    <span class="badge bg-dark rounded-pill">{{ course.enrolled_count }} enrolled</span>
+                                                                </div>
+                                                            </div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-secondary">
+                                            No courses currently offered by this department.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
-                    {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -128,7 +140,7 @@
     .dept-icon {
         width: 80px;
         height: 80px;
-        background-color: #ffc107;
+        background-color: #343a40;
         text-align: center;
         border-radius: 50%;
         display: flex;
@@ -136,7 +148,7 @@
         justify-content: center;
         margin: 0 auto;
     }
-    
+
     .dept-icon i {
         color: #fff;
     }
@@ -144,7 +156,7 @@
     .head-avatar {
         width: 50px;
         height: 50px;
-        background-color: #6c757d;
+        background-color: #343a40;
         text-align: center;
         border-radius: 50%;
         display: flex;
@@ -157,9 +169,23 @@
         color: #fff;
         font-weight: bold;
     }
+
+    .accordion-button:not(.collapsed) {
+        color: white;
+        background-color: #2c3136;
+    }
+
+    .accordion-button:focus {
+        box-shadow: none;
+        border-color: rgba(0,0,0,.125);
+    }
+
+    .accordion-item {
+        border-radius: 0.375rem;
+        overflow: hidden;
+    }
 </style>
 
-{% block extra_js %}
+<!-- Add Font Awesome for icons -->
 <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-{% endblock %}
 {% endblock %}

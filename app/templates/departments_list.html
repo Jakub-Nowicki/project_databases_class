@@ -4,44 +4,48 @@
 
 {% block content %}
 <div class="container">
-    <div class="row">
-        <div class="col-12 mb-4">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1>Academic Departments</h1>
-                <a href="{{ url_for('view') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Database
-                </a>
-            </div>
-            <p class="text-muted">Click on a department to view its faculty and courses</p>
-        </div>
-        
-        <div class="col-12">
-            <div class="row g-4">
-                {% for department in departments %}
-                <div class="col-md-6 col-lg-4">
-                    <div class="card department-card shadow-sm h-100">
-                        <div class="card-body d-flex flex-column">
-                            <div class="text-center mb-3">
-                                <div class="dept-icon mb-3">
-                                    <i class="fas fa-university fa-3x"></i>
-                                </div>
-                                <h3>{{ department[1] }}</h3>
-                                <div class="badge bg-warning text-dark mb-3">
-                                    {{ department[4] }} Courses • {{ department[3] }} Students • {{ department[5] }} Faculty
-                                </div>
-                            </div>
-                            
-                            <p class="mb-3"><strong>Chair:</strong> {{ department[2] }}</p>
-                            
-                            <div class="mt-auto text-center">
-                                <a href="{{ url_for('department_detail', id=department[0]) }}" class="btn btn-warning w-100">
-                                    <i class="fas fa-university me-2"></i> View Department
-                                </a>
-                            </div>
-                        </div>
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0 rounded-lg mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="/view" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                        <h2 class="mb-0 text-center flex-grow-1">Academic Departments</h2>
+                        <div style="width: 70px;"></div> <!-- Empty div for balance -->
                     </div>
                 </div>
-                {% endfor %}
+
+                <div class="card-body bg-light">
+                    <div class="row g-4">
+                        {% for department in departments %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card department-card shadow-sm h-100 border-0">
+                                <div class="card-body d-flex flex-column">
+                                    <div class="text-center mb-3">
+                                        <div class="dept-icon mb-3">
+                                            <i class="fas fa-university fa-3x"></i>
+                                        </div>
+                                        <h3>{{ department[1] }}</h3>
+                                        <div class="badge bg-secondary text-white mb-3">
+                                            {{ department[4] }} Courses • {{ department[3] }} Students • {{ department[5] }} Faculty
+                                        </div>
+                                    </div>
+
+                                    <p class="mb-3"><strong>Chair:</strong> {{ department[2] }}</p>
+
+                                    <div class="mt-auto text-center">
+                                        <a href="{{ url_for('department_detail', id=department[0]) }}" class="btn btn-dark w-100">
+                                            <i class="fas fa-university me-2"></i> View Department
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -51,7 +55,7 @@
     .dept-icon {
         width: 80px;
         height: 80px;
-        background-color: #ffc107;
+        background-color: #343a40;
         text-align: center;
         border-radius: 50%;
         display: flex;
@@ -59,22 +63,21 @@
         justify-content: center;
         margin: 0 auto;
     }
-    
+
     .dept-icon i {
         color: #fff;
     }
-    
+
     .department-card {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-    
+
     .department-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2) !important;
     }
 </style>
 
-{% block extra_js %}
+<!-- Add Font Awesome for icons -->
 <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-{% endblock %}
 {% endblock %}

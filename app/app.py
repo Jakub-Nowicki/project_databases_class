@@ -406,7 +406,7 @@ def course_offerings():
             LEFT JOIN departments d ON c.department_id = d.department_id
             LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
             LEFT JOIN enrollment_counts e ON c.course_id = e.course_id
-            ORDER BY d.department_name, c.course_name
+            ORDER BY d.department_name, c.course_id
         """)
         current_courses = []
         for row in cur.fetchall():
@@ -433,7 +433,7 @@ def course_offerings():
             JOIN courses c ON ds.course_id = c.course_id
             LEFT JOIN departments d ON c.department_id = d.department_id
             LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
-            ORDER BY ds.semester DESC, d.department_name, c.course_name
+            ORDER BY ds.semester DESC, d.department_name, c.course_id
         """)
 
         # Map semesters to academic years and organize courses
