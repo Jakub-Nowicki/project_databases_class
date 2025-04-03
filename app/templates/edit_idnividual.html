@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Student{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0 rounded-lg mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('edit_students') }}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                        <h2 class="mb-0 text-center flex-grow-1">Edit Student</h2>
+                        <div style="width: 70px;"></div>
+                    </div>
+                </div>
+
+                <div class="card-body bg-light">
+                    {% if message %}
+                    <div class="alert alert-{{ message_type }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-3" style="width: 80px; height: 80px;">
+                                    <span class="initials" style="font-size: 32px;">{{ student[1][0] }}</span>
+                                </div>
+                                <div>
+                                    <h3 class="mb-0">{{ student[1] }}</h3>
+                                    <p class="text-muted mb-0">Student ID: {{ student[0] }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="post" action="{{ url_for('update_student', id=student[0]) }}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Full Name</label>
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           value="{{ student[1] }}" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="age" class="form-label">Age</label>
+                                    <input type="number" class="form-control" id="age" name="age" 
+                                           value="{{ student[2] }}" min="16" max="100" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="email" name="email" 
+                                           value="{{ student[3] }}" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="major" class="form-label">Major</label>
+                                    <input type="text" class="form-control" id="major" name="major" 
+                                           value="{{ student[4] }}" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="department" class="form-label">Department</label>
+                                    <select class="form-select" id="department" name="department_id" required>
+                                        {% for dept in departments %}
+                                        <option value="{{ dept[0] }}" {% if dept[0] == student[6] %}selected{% endif %}>
+                                            {{ dept[1] }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mt-4 mb-4 shadow-sm">
+                            <div class="card-header bg-secondary text-white">
+                                <h5 class="mb-0">Student Enrollments</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if enrollments %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Course</th>
+                                                <th>Semester</th>
+                                                <th>Grade</th>
+                                                <th>Instructor</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for enrollment in enrollments %}
+                                            <tr>
+                                                <td>{{ enrollment[0] }}</td>
+                                                <td>
+                                                    <span class="badge {% if enrollment[1] == 'Fall 2025' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                        {{ enrollment[1] }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    {% if enrollment[2] %}
+                                                    <span class="badge 
+                                                        {% if enrollment[2].startswith('A') %}bg-success{% 
+                                                        elif enrollment[2].startswith('B') %}bg-primary{% 
+                                                        elif enrollment[2].startswith('C') %}bg-warning text-dark{% 
+                                                        elif enrollment[2].startswith('D') %}bg-danger{% 
+                                                        else %}bg-dark{% endif %}">
+                                                        {{ enrollment[2] }}
+                                                    </span>
+                                                    {% else %}
+                                                    <span class="badge bg-light text-dark">In Progress</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ enrollment[3] or "Unassigned" }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-2">
+                                    <a href="{{ url_for('edit_enrollments', student_id=student[0]) }}" class="btn btn-outline-dark btn-sm">
+                                        <i class="fas fa-edit me-1"></i> Manage Enrollments
+                                    </a>
+                                </div>
+                                {% else %}
+                                <div class="alert alert-secondary">
+                                    <i class="fas fa-info-circle me-2"></i> This student is not enrolled in any courses.
+                                </div>
+                                <a href="{{ url_for('add_enrollment', student_id=student[0]) }}" class="btn btn-outline-dark btn-sm">
+                                    <i class="fas fa-plus me-1"></i> Add Enrollment
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                <i class="fas fa-trash me-2"></i> Delete Student
+                            </button>
+                            
+                            <button type="submit" class="btn btn-dark">
+                                <i class="fas fa-save me-2"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this student?</p>
+                <div class="alert alert-warning">
+                    <strong>Warning:</strong> This action cannot be undone. All associated enrollment records will also be deleted.
+                </div>
+                <div class="d-flex align-items-center bg-light p-3 rounded">
+                    <div class="avatar-circle me-3" style="width: 50px; height: 50px;">
+                        <span class="initials" style="font-size: 20px;">{{ student[1][0] }}</span>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">{{ student[1] }}</h5>
+                        <p class="mb-0 text-muted">ID: {{ student[0] }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('delete_student', id=student[0]) }}" method="post">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i> Delete Student
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .avatar-circle {
+        background-color: #343a40;
+        text-align: center;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .initials {
+        color: #fff;
+        font-weight: bold;
+    }
+</style>
+
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}

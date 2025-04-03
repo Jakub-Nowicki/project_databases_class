@@ -1,5 +1,5 @@
 from gpa_calculator import calculate_gpa
-from flask import Flask, render_template, flash, redirect, url_for
+from flask import Flask, render_template, flash, redirect, url_for, request, session
 import psycopg2
 from psycopg2 import pool
 
@@ -31,6 +31,279 @@ def view():
 @app.route('/manage')
 def manage():
     return render_template('manage.html')
+
+
+@app.route('/students/manage')
+def manage_students():
+    return render_template('manage_students.html')
+
+
+@app.route('/students/add', methods=['GET', 'POST'])
+def add_student():
+    conn = get_db_connection()
+    try:
+        if request.method == 'POST':
+            name = request.form['name']
+            age = request.form['age']
+            email = request.form['email']
+            major = request.form['major']
+            department_id = request.form['department_id']
+            student_id = request.form.get('student_id', '').strip()
+
+            cur = conn.cursor()
+
+            # Check if email already exists
+            cur.execute("SELECT COUNT(*) FROM students WHERE email = %s", (email,))
+            if cur.fetchone()[0] > 0:
+                cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
+                departments = cur.fetchall()
+                cur.close()
+                return render_template('student_add.html',
+                                       message="Email already exists in the database.",
+                                       message_type="danger",
+                                       departments=departments)
+
+            # Insert new student
+            if student_id:
+                # Check if ID already exists
+                cur.execute("SELECT COUNT(*) FROM students WHERE student_id = %s", (student_id,))
+                if cur.fetchone()[0] > 0:
+                    cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
+                    departments = cur.fetchall()
+                    cur.close()
+                    return render_template('student_add.html',
+                                           message="Student ID already exists. Please use a different ID or leave blank for auto-generation.",
+                                           message_type="danger",
+                                           departments=departments)
+
+                # Insert with provided ID
+                cur.execute("""
+                    INSERT INTO students (student_id, name, age, email, major, department_id)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (student_id, name, age, email, major, department_id))
+            else:
+                # Auto-generate ID
+                cur.execute("""
+                    INSERT INTO students (name, age, email, major, department_id)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING student_id
+                """, (name, age, email, major, department_id))
+                student_id = cur.fetchone()[0]
+
+            conn.commit()
+            flash("Student added successfully!", "success")
+            return redirect(url_for('edit_student', id=student_id))
+
+        # GET request - show form
+        cur = conn.cursor()
+        cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
+        departments = cur.fetchall()
+        cur.close()
+        return render_template('add_student.html', departments=departments)
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error adding student: {str(e)}", "danger")
+        return redirect(url_for('manage_students'))
+    finally:
+        release_db_connection(conn)
+
+
+@app.route('/students/edit')
+def edit_students():
+    conn = get_db_connection()
+    try:
+        search_query = request.args.get('search', '')
+        department_filter = request.args.get('department', '')
+        page = int(request.args.get('page', 1))
+        per_page = 10  # Number of students per page
+
+        cur = conn.cursor()
+
+        # Get departments for filter dropdown
+        cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
+        departments = cur.fetchall()
+
+        # Base query
+        query = """
+            SELECT s.student_id, s.name, s.age, s.email, s.major, d.department_name, s.department_id
+            FROM students s
+            LEFT JOIN departments d ON s.department_id = d.department_id
+            WHERE 1=1
+        """
+        params = []
+
+        # Add search condition if search query exists
+        if search_query:
+            query += " AND (s.student_id::text ILIKE %s OR s.name ILIKE %s)"
+            search_pattern = f"%{search_query}%"
+            params.extend([search_pattern, search_pattern])
+
+        # Add department filter if selected
+        if department_filter:
+            query += " AND s.department_id = %s"
+            params.append(department_filter)
+
+        # Add ordering
+        query += " ORDER BY s.name"
+
+        # Get total count for pagination
+        count_query = f"SELECT COUNT(*) FROM ({query}) AS count_query"
+        cur.execute(count_query, params)
+        total_count = cur.fetchone()[0]
+
+        # Calculate pagination
+        total_pages = (total_count + per_page - 1) // per_page
+        offset = (page - 1) * per_page
+
+        # Add pagination to the query
+        query += " LIMIT %s OFFSET %s"
+        params.extend([per_page, offset])
+
+        # Execute final query
+        cur.execute(query, params)
+        students = cur.fetchall()
+
+        cur.close()
+        return render_template(
+            'edit_student.html',
+            students=students,
+            departments=departments,
+            search_query=search_query,
+            department_filter=department_filter,
+            page=page,
+            total_pages=total_pages
+        )
+    finally:
+        release_db_connection(conn)
+
+
+@app.route('/students/edit/<int:id>', methods=['GET'])
+def edit_student(id):
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Get student details
+        cur.execute("""
+            SELECT s.student_id, s.name, s.age, s.email, s.major, d.department_name, s.department_id
+            FROM students s
+            LEFT JOIN departments d ON s.department_id = d.department_id
+            WHERE s.student_id = %s
+        """, (id,))
+        student = cur.fetchone()
+
+        if student is None:
+            flash("Student not found", "danger")
+            return redirect(url_for('edit_students'))
+
+        # Get student enrollments
+        cur.execute("""
+            SELECT c.course_name, e.semester, e.grade, i.name as instructor_name
+            FROM enrollments e
+            JOIN courses c ON e.course_id = c.course_id
+            LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
+            WHERE e.student_id = %s
+            ORDER BY 
+                CASE 
+                    WHEN e.semester = 'Fall 2025' THEN 1
+                    WHEN e.semester = 'Spring 2025' THEN 2
+                    WHEN e.semester = 'Winter 2025' THEN 3
+                    WHEN e.semester = 'Fall 2024' THEN 4
+                    ELSE 5
+                END,
+                c.course_name
+        """, (id,))
+        enrollments = cur.fetchall()
+
+        # Get departments for dropdown
+        cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
+        departments = cur.fetchall()
+
+        cur.close()
+        return render_template(
+            'edit_student.html',
+            student=student,
+            enrollments=enrollments,
+            departments=departments
+        )
+    finally:
+        release_db_connection(conn)
+
+
+@app.route('/students/update/<int:id>', methods=['POST'])
+def update_student(id):
+    conn = get_db_connection()
+    try:
+        name = request.form['name']
+        age = request.form['age']
+        email = request.form['email']
+        major = request.form['major']
+        department_id = request.form['department_id']
+
+        cur = conn.cursor()
+
+        # Check if email already exists for another student
+        cur.execute("""
+            SELECT COUNT(*) FROM students 
+            WHERE email = %s AND student_id != %s
+        """, (email, id))
+
+        if cur.fetchone()[0] > 0:
+            flash("Email already exists for another student", "danger")
+            return redirect(url_for('edit_student', id=id))
+
+        # Update student record
+        cur.execute("""
+            UPDATE students
+            SET name = %s, age = %s, email = %s, major = %s, department_id = %s
+            WHERE student_id = %s
+        """, (name, age, email, major, department_id, id))
+
+        conn.commit()
+        flash("Student updated successfully", "success")
+        return redirect(url_for('edit_student', id=id))
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error updating student: {str(e)}", "danger")
+        return redirect(url_for('edit_student', id=id))
+    finally:
+        release_db_connection(conn)
+
+
+@app.route('/students/delete/<int:id>', methods=['POST'])
+def delete_student(id):
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Delete student enrollments first (due to foreign key constraint)
+        cur.execute("DELETE FROM enrollments WHERE student_id = %s", (id,))
+
+        # Delete student record
+        cur.execute("DELETE FROM students WHERE student_id = %s", (id,))
+
+        conn.commit()
+        flash("Student deleted successfully", "success")
+        return redirect(url_for('edit_students'))
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error deleting student: {str(e)}", "danger")
+        return redirect(url_for('edit_student', id=id))
+    finally:
+        release_db_connection(conn)
+
+
+# Add these helper functions
+def get_all_departments():
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
+        departments = cur.fetchall()
+        cur.close()
+        return departments
+    finally:
+        release_db_connection(conn)
 
 @app.route('/students')
 def list_students():
