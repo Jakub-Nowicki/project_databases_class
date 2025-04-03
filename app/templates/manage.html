@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Database{% endblock %}
+
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h2 class="mb-0">Manage Database</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Select a category to manage:</p>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h3>Students</h3>
+                                    <p>Add, edit, or delete student records</p>
+                                    <a href="/students/manage" class="btn btn-outline-warning">Manage Students</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h3>Courses</h3>
+                                    <p>Add, edit, or delete course offerings</p>
+                                    <a href="/courses/manage" class="btn btn-outline-warning">Manage Courses</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h3>Instructors</h3>
+                                    <p>Add, edit, or delete instructor information</p>
+                                    <a href="/instructors/manage" class="btn btn-outline-warning">Manage Instructors</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h3>Departments</h3>
+                                    <p>Add, edit, or delete department details</p>
+                                    <a href="/departments/manage" class="btn btn-outline-warning">Manage Departments</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h3>Enrollments</h3>
+                                    <p>Add, edit, or delete student enrollments</p>
+                                    <a href="/enrollments/manage" class="btn btn-outline-warning">Manage Enrollments</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

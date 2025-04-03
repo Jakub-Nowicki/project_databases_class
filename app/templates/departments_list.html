@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Departments List{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>Academic Departments</h1>
+                <a href="{{ url_for('view') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Database
+                </a>
+            </div>
+            <p class="text-muted">Click on a department to view its faculty and courses</p>
+        </div>
+        
+        <div class="col-12">
+            <div class="row g-4">
+                {% for department in departments %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="card department-card shadow-sm h-100">
+                        <div class="card-body d-flex flex-column">
+                            <div class="text-center mb-3">
+                                <div class="dept-icon mb-3">
+                                    <i class="fas fa-university fa-3x"></i>
+                                </div>
+                                <h3>{{ department[1] }}</h3>
+                                <div class="badge bg-warning text-dark mb-3">
+                                    {{ department[4] }} Courses • {{ department[3] }} Students • {{ department[5] }} Faculty
+                                </div>
+                            </div>
+                            
+                            <p class="mb-3"><strong>Chair:</strong> {{ department[2] }}</p>
+                            
+                            <div class="mt-auto text-center">
+                                <a href="{{ url_for('department_detail', id=department[0]) }}" class="btn btn-warning w-100">
+                                    <i class="fas fa-university me-2"></i> View Department
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .dept-icon {
+        width: 80px;
+        height: 80px;
+        background-color: #ffc107;
+        text-align: center;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+    
+    .dept-icon i {
+        color: #fff;
+    }
+    
+    .department-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .department-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+</style>
+
+{% block extra_js %}
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}
+{% endblock %}

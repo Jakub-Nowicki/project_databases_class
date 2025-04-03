@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Student Enrollments{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>Student Enrollments</h1>
+                <a href="{{ url_for('view') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Database
+                </a>
+            </div>
+            <p class="text-muted">Click on a student to view their course enrollments</p>
+        </div>
+        
+        <div class="col-12">
+            <div class="accordion" id="studentsAccordion">
+                {% for student in students %}
+                <div class="accordion-item shadow-sm mb-3">
+                    <h2 class="accordion-header" id="heading{{ student.student_id }}">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                data-bs-target="#collapse{{ student.student_id }}" 
+                                aria-expanded="false" aria-controls="collapse{{ student.student_id }}">
+                            <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                <div>
+                                    <strong>{{ student.student_name }}</strong>
+                                    <span class="text-muted ms-2">(ID: {{ student.student_id }})</span>
+                                </div>
+                                <div>
+                                    <span class="badge bg-primary rounded-pill">{{ student.total_courses }} courses</span>
+                                    <span class="badge bg-success ms-2 rounded-pill">{{ student.current_courses }} current</span>
+                                </div>
+                            </div>
+                        </button>
+                    </h2>
+                    
+                    <div id="collapse{{ student.student_id }}" class="accordion-collapse collapse" 
+                         aria-labelledby="heading{{ student.student_id }}" data-bs-parent="#studentsAccordion">
+                        <div class="accordion-body p-0">
+                            <div class="table-responsive">
+                                <table class="table mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Course</th>
+                                            <th>Semester</th>
+                                            <th>Grade</th>
+                                            <th>Instructor</th>
+                                            <th>Department</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for enrollment in student.enrollments %}
+                                        <tr>
+                                            <td>{{ enrollment.course_name }}</td>
+                                            <td>
+                                                <span class="badge {% if enrollment.semester == 'Fall 2025' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                    {{ enrollment.semester }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if enrollment.grade %}
+                                                    <span class="badge 
+                                                        {% if enrollment.grade.startswith('A') %}bg-success{% 
+                                                        elif enrollment.grade.startswith('B') %}bg-primary{% 
+                                                        elif enrollment.grade.startswith('C') %}bg-warning text-dark{% 
+                                                        elif enrollment.grade.startswith('D') %}bg-danger{% 
+                                                        else %}bg-dark{% endif %}">
+                                                        {{ enrollment.grade }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-dark">In Progress</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if enrollment.instructor_name %}
+                                                    <a href="{{ url_for('instructor_detail', id=enrollment.instructor_id) }}" class="text-decoration-none">
+                                                        {{ enrollment.instructor_name }}
+                                                    </a>
+                                                {% else %}
+                                                    <span class="text-muted">Unassigned</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ enrollment.department_name }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="card-footer bg-light d-flex justify-content-end">
+                                <a href="{{ url_for('student_detail', id=student.student_id) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-user me-1"></i> Student Profile
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .accordion-button:not(.collapsed) {
+        background-color: #f8f9fa;
+        color: #212529;
+    }
+    
+    .accordion-button:focus {
+        box-shadow: none;
+        border-color: rgba(0,0,0,.125);
+    }
+    
+    .accordion-item {
+        border-radius: 0.375rem;
+        overflow: hidden;
+    }
+</style>
+
+{% block extra_js %}
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}
+{% endblock %}

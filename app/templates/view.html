@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}University Database{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0 rounded-lg mb-4">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h2 class="mb-0 text-center">University Database</h2>
+                </div>
+
+                <div class="card-body">
+                    <div class="row mt-2">
+                        <!-- Main Categories Section -->
+                        <div class="col-12 mb-4">
+                            <h4 class="border-bottom pb-2 text-primary">Main Categories</h4>
+                            <div class="row g-3">
+                                <!-- Students Card -->
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card h-100 shadow-sm hover-card">
+                                        <div class="card-body text-center">
+                                            <div class="mb-3">
+                                                <i class="fas fa-user-graduate fa-3x text-primary"></i>
+                                            </div>
+                                            <h3>Students</h3>
+                                            <p class="text-muted">Browse student records and academic profiles</p>
+                                            <a href="/students" class="btn btn-primary w-100">View Students</a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Courses Card -->
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card h-100 shadow-sm hover-card">
+                                        <div class="card-body text-center">
+                                            <div class="mb-3">
+                                                <i class="fas fa-book fa-3x text-success"></i>
+                                            </div>
+                                            <h3>Courses</h3>
+                                            <p class="text-muted">View course offerings sorted by semester</p>
+                                            <a href="/course-offerings" class="btn btn-success w-100">View Courses</a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Instructors Card -->
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card h-100 shadow-sm hover-card">
+                                        <div class="card-body text-center">
+                                            <div class="mb-3">
+                                                <i class="fas fa-chalkboard-teacher fa-3x text-info"></i>
+                                            </div>
+                                            <h3>Instructors</h3>
+                                            <p class="text-muted">View instructor profiles and their courses</p>
+                                            <a href="/instructors" class="btn btn-info w-100">View Instructors</a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Departments Card -->
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card h-100 shadow-sm hover-card">
+                                        <div class="card-body text-center">
+                                            <div class="mb-3">
+                                                <i class="fas fa-university fa-3x text-warning"></i>
+                                            </div>
+                                            <h3>Departments</h3>
+                                            <p class="text-muted">View departments, heads, and faculty members</p>
+                                            <a href="/departments" class="btn btn-warning w-100">View Departments</a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Enrollments Card -->
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card h-100 shadow-sm hover-card">
+                                        <div class="card-body text-center">
+                                            <div class="mb-3">
+                                                <i class="fas fa-clipboard-list fa-3x text-danger"></i>
+                                            </div>
+                                            <h3>Enrollments</h3>
+                                            <p class="text-muted">View student enrollments and class rosters</p>
+                                            <a href="/enrollments" class="btn btn-danger w-100">View Enrollments</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(to right, #4e73df, #224abe);
+    }
+    .hover-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    .card i {
+        margin-bottom: 15px;
+    }
+    .card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
+</style>
+
+{% block extra_js %}
+<!-- Add Font Awesome for icons -->
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}
+{% endblock %}

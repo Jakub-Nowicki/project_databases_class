@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Instructor Details{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12 mb-3">
+            <a href="{{ url_for('list_instructors') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Instructors
+            </a>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">Instructor Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="avatar-circle mb-3">
+                            <span class="initials">{{ instructor[1][0] }}</span>
+                        </div>
+                        <h2>{{ instructor[1] }}</h2>
+                        <p class="text-muted">{{ instructor[3] }} Department</p>
+                    </div>
+
+                    <div class="instructor-details">
+                        <p><strong>ID:</strong> {{ instructor[0] }}</p>
+                        <p><strong>Email:</strong> {{ instructor[2] }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">Courses Taught</h5>
+                </div>
+                <div class="card-body">
+                    {% if instructor_courses %}
+                        <div class="accordion" id="courseAccordion">
+                            {% for semester, courses in instructor_courses.items() %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading{{ loop.index }}">
+                                    <button class="accordion-button {% if not loop.first %}collapsed{% endif %}"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#collapse{{ loop.index }}"
+                                            aria-expanded="{% if loop.first %}true{% else %}false{% endif %}"
+                                            aria-controls="collapse{{ loop.index }}">
+                                        {{ semester }} <span class="badge bg-info ms-2">{{ courses|length }} courses</span>
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ loop.index }}"
+                                     class="accordion-collapse collapse {% if loop.first %}show{% endif %}"
+                                     aria-labelledby="heading{{ loop.index }}"
+                                     data-bs-parent="#courseAccordion">
+                                    <div class="accordion-body p-0">
+                                        <div class="list-group list-group-flush">
+                                            {% for course in courses %}
+                                            <div class="list-group-item">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <h6 class="mb-0">{{ course.course_name }}</h6>
+                                                        <small class="text-muted">{{ course.department_name }} • {{ course.credits }} credits</small>
+                                                    </div>
+                                                    <span class="badge bg-primary rounded-pill">{{ course.enrolled_count }} enrolled</span>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            This instructor is not currently teaching any courses.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .avatar-circle {
+        width: 100px;
+        height: 100px;
+        background-color: #5bc0de;
+        text-align: center;
+        border-radius: 50%;
+        -webkit-border-radius: 50%;
+        -moz-border-radius: 50%;
+        margin: 0 auto;
+    }
+
+    .initials {
+        position: relative;
+        top: 25px;
+        font-size: 50px;
+        line-height: 50px;
+        color: #fff;
+        font-weight: bold;
+    }
+</style>
+
+{% block extra_js %}
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}
+{% endblock %}

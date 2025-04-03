@@ -1,8 +1,40 @@
 {% extends "base.html" %}
 
-{% block title %}Specific Page Title{% endblock %}
+{% block title %}Student Management System{% endblock %}
 
 {% block content %}
-    <h1>Welcome to this page</h1>
-    <p>Your page-specific content goes here...</p>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">Student Management System</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Welcome to the Student Management System.</p>
+
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h3>View Database</h3>
+                                    <p>Access and view all database information</p>
+                                    <a href="/view" class="btn btn-outline-primary">View Database</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h3>Manage Database</h3>
+                                    <p>Add, update, or delete database records</p>
+                                    <a href="/manage" class="btn btn-outline-warning">Manage Database</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

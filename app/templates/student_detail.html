@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Student Detail{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-12 mb-3">
+            <a href="{{ url_for('list_students') }}" class="btn btn-secondary">&larr; Back to Students List</a>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Student Information</h5>
+                </div>
+                <div class="card-body">
+                    <h2 class="mb-3">{{ student[1] }}</h2>
+                    <p><strong>ID:</strong> {{ student[0] }}</p>
+                    <p><strong>Age:</strong> {{ student[2] }}</p>
+                    <p><strong>Email:</strong> {{ student[3] }}</p>
+                    <p><strong>Major:</strong> {{ student[4] }}</p>
+                    <p><strong>Department:</strong> {{ student[5] }}</p>
+                    
+                    {% if gpa %}
+                    <div class="alert alert-info mt-3">
+                        <h5>Academic Performance</h5>
+                        <p><strong>Current GPA:</strong> {{ gpa|round(2) }} / 4.0</p>
+                        <p><strong>Completed Credits:</strong> {{ completed_credits }}</p>
+                        <p><strong>Enrolled Credits:</strong> {{ current_credits }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <!-- Current Enrollments -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">Currently Enrolled Courses</h5>
+                </div>
+                <div class="card-body">
+                    {% if current_courses %}
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Course Name</th>
+                                    <th>Credits</th>
+                                    <th>Semester</th>
+                                    <th>Instructor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for course in current_courses %}
+                                <tr>
+                                    <td>{{ course[0] }}</td>
+                                    <td>{{ course[1] }}</td>
+                                    <td>{{ course[2] }}</td>
+                                    <td>{{ course[4] or "Unassigned" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="alert alert-info">
+                            This student is not currently enrolled in any courses.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Completed Courses -->
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">Completed Courses</h5>
+                </div>
+                <div class="card-body">
+                    {% if completed_courses %}
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Course Name</th>
+                                    <th>Credits</th>
+                                    <th>Semester</th>
+                                    <th>Grade</th>
+                                    <th>Instructor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for course in completed_courses %}
+                                <tr>
+                                    <td>{{ course[0] }}</td>
+                                    <td>{{ course[1] }}</td>
+                                    <td>{{ course[2] }}</td>
+                                    <td>{{ course[3] }}</td>
+                                    <td>{{ course[4] or "Unassigned" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="alert alert-info">
+                            This student has not completed any courses yet.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
