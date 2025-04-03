@@ -149,15 +149,16 @@ def list_enrollments():
     finally:
         release_db_connection(conn)
 # Instructor detail route
+# Instructor detail route
 @app.route('/instructors/<int:id>')
 def instructor_detail(id):
     conn = get_db_connection()
     try:
         cur = conn.cursor()
 
-        # Get instructor information
+        # Get instructor information including department_id
         cur.execute("""
-            SELECT i.instructor_id, i.name, i.email, d.department_name
+            SELECT i.instructor_id, i.name, i.email, d.department_name, d.department_id
             FROM instructors i
             LEFT JOIN departments d ON i.department_id = d.department_id
             WHERE i.instructor_id = %s
@@ -223,7 +224,6 @@ def instructor_detail(id):
         release_db_connection(conn)
 
 
-# Route for listing all departments
 @app.route('/departments')
 def list_departments():
     conn = get_db_connection()
