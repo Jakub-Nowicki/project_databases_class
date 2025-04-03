@@ -5,42 +5,105 @@ from psycopg2 import pool
 
 app = Flask(__name__)
 
-# Database connection pool
 connection_pool = psycopg2.pool.SimpleConnectionPool(
     1, 20,
     dbname="project",
     user="postgres",
-    password="1234",  # Change this to your actual password
+    password="1234",
     host="localhost",
     port="5432"
 )
 
-
-# Helper functions for database connections
 def get_db_connection():
     return connection_pool.getconn()
 
-
 def release_db_connection(conn):
     connection_pool.putconn(conn)
-
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-
 @app.route('/view')
 def view():
     return render_template('view.html')
-
 
 @app.route('/manage')
 def manage():
     return render_template('manage.html')
 
+@app.route('/students')
+def list_students():
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT student_id, name
+            FROM students
+            ORDER BY student_id
+        """)
+        students = cur.fetchall()
+        cur.close()
+        return render_template('students.html', students=students)
+    finally:
+        release_db_connection(conn)
 
-# Route for listing all instructors
+@app.route('/students/<int:id>')
+def student_detail(id):
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT s.student_id, s.name, s.age, s.email, s.major, d.department_name
+            FROM students s
+            LEFT JOIN departments d ON s.department_id = d.department_id
+            WHERE s.student_id = %s
+        """, (id,))
+        student = cur.fetchone()
+
+        if student is None:
+            flash("Student not found", "danger")
+            return redirect(url_for('list_students'))
+
+        cur.execute("""
+            SELECT c.course_name, c.credits, e.semester, e.grade, i.name as instructor_name
+            FROM enrollments e
+            JOIN courses c ON e.course_id = c.course_id
+            LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
+            WHERE e.student_id = %s
+            ORDER BY e.semester DESC
+        """, (id,))
+        all_courses = cur.fetchall()
+
+        current_courses = []
+        completed_courses = []
+        current_credits = 0
+
+        for course in all_courses:
+            credits = course[1] or 0
+
+            if course[3] is None:
+                current_courses.append(course)
+                current_credits += credits
+            else:
+                completed_courses.append(course)
+
+        gpa, completed_credits, gpa_points = calculate_gpa(all_courses)
+
+        cur.close()
+        return render_template(
+            'student_detail.html',
+            student=student,
+            current_courses=current_courses,
+            completed_courses=completed_courses,
+            gpa=gpa,
+            completed_credits=completed_credits,
+            current_credits=current_credits
+        )
+    finally:
+        release_db_connection(conn)
+
 @app.route('/instructors')
 def list_instructors():
     conn = get_db_connection()
@@ -58,105 +121,12 @@ def list_instructors():
     finally:
         release_db_connection(conn)
 
-
-@app.route('/enrollments')
-def list_enrollments():
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-
-        # Get all enrollments with related information
-        cur.execute("""
-            SELECT 
-                e.enrollment_id,
-                s.student_id,
-                s.name as student_name,
-                c.course_id,
-                c.course_name,
-                e.semester,
-                e.grade,
-                i.instructor_id,
-                i.name as instructor_name,
-                d.department_name
-            FROM 
-                enrollments e
-            JOIN 
-                students s ON e.student_id = s.student_id
-            JOIN 
-                courses c ON e.course_id = c.course_id
-            LEFT JOIN 
-                instructors i ON c.instructor_id = i.instructor_id
-            LEFT JOIN 
-                departments d ON c.department_id = d.department_id
-            ORDER BY 
-                s.student_id,  -- Sort by student ID first
-                CASE 
-                    WHEN e.semester = 'Fall 2025' THEN 1
-                    WHEN e.semester = 'Spring 2025' THEN 2
-                    WHEN e.semester = 'Winter 2025' THEN 3
-                    WHEN e.semester = 'Fall 2024' THEN 4
-                    WHEN e.semester = 'Spring 2024' THEN 5
-                    WHEN e.semester = 'Winter 2024' THEN 6
-                    WHEN e.semester = 'Fall 2023' THEN 7
-                    ELSE 8
-                END,
-                c.course_name
-        """)
-
-        # Organize enrollments by student
-        enrollment_rows = cur.fetchall()
-        students_dict = {}
-
-        for row in enrollment_rows:
-            student_id = row[1]
-            enrollment = {
-                'enrollment_id': row[0],
-                'course_id': row[3],
-                'course_name': row[4],
-                'semester': row[5],
-                'grade': row[6],
-                'instructor_id': row[7],
-                'instructor_name': row[8],
-                'department_name': row[9]
-            }
-
-            # Create student entry if it doesn't exist
-            if student_id not in students_dict:
-                students_dict[student_id] = {
-                    'student_id': student_id,
-                    'student_name': row[2],
-                    'enrollments': [],
-                    'total_courses': 0,
-                    'current_courses': 0
-                }
-
-            # Add enrollment to student
-            students_dict[student_id]['enrollments'].append(enrollment)
-            students_dict[student_id]['total_courses'] += 1
-
-            # Count current courses (Fall 2025)
-            if row[5] == 'Fall 2025':
-                students_dict[student_id]['current_courses'] += 1
-
-        # Convert dictionary to list for template
-        students = list(students_dict.values())
-
-        # Sort students by ID
-        students.sort(key=lambda x: x['student_id'])
-
-        cur.close()
-        return render_template('enrollments_list.html', students=students)
-    finally:
-        release_db_connection(conn)
-# Instructor detail route
-# Instructor detail route
 @app.route('/instructors/<int:id>')
 def instructor_detail(id):
     conn = get_db_connection()
     try:
         cur = conn.cursor()
 
-        # Get instructor information including department_id
         cur.execute("""
             SELECT i.instructor_id, i.name, i.email, d.department_name, d.department_id
             FROM instructors i
@@ -169,7 +139,6 @@ def instructor_detail(id):
             flash("Instructor not found", "danger")
             return redirect(url_for('list_instructors'))
 
-        # Get courses taught by this instructor, organized by semester
         cur.execute("""
             WITH enrollment_counts AS (
                 SELECT course_id, semester, COUNT(*) as enrolled_count
@@ -196,7 +165,6 @@ def instructor_detail(id):
                 c.course_name
         """, (id,))
 
-        # Organize courses by semester
         instructor_courses = {}
         for row in cur.fetchall():
             course_info = {
@@ -223,7 +191,6 @@ def instructor_detail(id):
     finally:
         release_db_connection(conn)
 
-
 @app.route('/departments')
 def list_departments():
     conn = get_db_connection()
@@ -247,15 +214,12 @@ def list_departments():
     finally:
         release_db_connection(conn)
 
-
-# Route for department details
 @app.route('/departments/<int:id>')
 def department_detail(id):
     conn = get_db_connection()
     try:
         cur = conn.cursor()
 
-        # Get department information
         cur.execute("""
             SELECT department_id, department_name, head_of_department
             FROM departments
@@ -267,7 +231,6 @@ def department_detail(id):
             flash("Department not found", "danger")
             return redirect(url_for('list_departments'))
 
-        # Create department object
         department = {
             'id': dept_row[0],
             'name': dept_row[1],
@@ -278,7 +241,6 @@ def department_detail(id):
             'course_count': 0
         }
 
-        # Get student count
         cur.execute("""
             SELECT COUNT(DISTINCT student_id)
             FROM students
@@ -286,7 +248,6 @@ def department_detail(id):
         """, (id,))
         department['student_count'] = cur.fetchone()[0]
 
-        # Get course count
         cur.execute("""
             SELECT COUNT(DISTINCT course_id)
             FROM courses
@@ -294,7 +255,6 @@ def department_detail(id):
         """, (id,))
         department['course_count'] = cur.fetchone()[0]
 
-        # Get instructors in this department with course counts
         cur.execute("""
             SELECT i.instructor_id, i.name, i.email,
                    COUNT(DISTINCT c.course_id) as course_count
@@ -314,7 +274,6 @@ def department_detail(id):
             }
             department['instructors'].append(instructor)
 
-        # Get courses by semester with enrollment counts
         cur.execute("""
             WITH enrollment_counts AS (
                 SELECT course_id, semester, COUNT(*) as enrolled_count
@@ -342,7 +301,6 @@ def department_detail(id):
                 c.course_name
         """, (id,))
 
-        # Organize courses by semester
         for row in cur.fetchall():
             course_info = {
                 'course_id': row[0],
@@ -367,32 +325,12 @@ def department_detail(id):
     finally:
         release_db_connection(conn)
 
-
-# Routes for viewing different entities
-@app.route('/students')
-def list_students():
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT student_id, name
-            FROM students
-            ORDER BY student_id
-        """)
-        students = cur.fetchall()
-        cur.close()
-        return render_template('students.html', students=students)
-    finally:
-        release_db_connection(conn)
-
-
 @app.route('/course-offerings')
 def course_offerings():
     conn = get_db_connection()
     try:
         cur = conn.cursor()
 
-        # Current semester courses (Fall 2025)
         cur.execute("""
             WITH enrollment_counts AS (
                 SELECT course_id, COUNT(*) as enrolled_count
@@ -419,7 +357,6 @@ def course_offerings():
                 'enrolled_count': row[5]
             })
 
-        # Historical courses by academic year and semester
         cur.execute("""
             WITH distinct_semesters AS (
                 SELECT DISTINCT course_id, semester
@@ -436,7 +373,6 @@ def course_offerings():
             ORDER BY ds.semester DESC, d.department_name, c.course_id
         """)
 
-        # Map semesters to academic years and organize courses
         historical_courses = {}
         semester_to_year = {
             'Fall 2023': '2023-2024',
@@ -467,7 +403,6 @@ def course_offerings():
 
             historical_courses[academic_year][semester].append(course_info)
 
-        # Sort the academic years (most recent first)
         historical_courses = dict(sorted(historical_courses.items(), key=lambda item: item[0], reverse=True))
 
         cur.close()
@@ -479,64 +414,85 @@ def course_offerings():
     finally:
         release_db_connection(conn)
 
-
-@app.route('/students/<int:id>')
-def student_detail(id):
+@app.route('/enrollments')
+def list_enrollments():
     conn = get_db_connection()
     try:
         cur = conn.cursor()
 
-        # Get student information
         cur.execute("""
-            SELECT s.student_id, s.name, s.age, s.email, s.major, d.department_name
-            FROM students s
-            LEFT JOIN departments d ON s.department_id = d.department_id
-            WHERE s.student_id = %s
-        """, (id,))
-        student = cur.fetchone()
+            SELECT 
+                e.enrollment_id,
+                s.student_id,
+                s.name as student_name,
+                c.course_id,
+                c.course_name,
+                e.semester,
+                e.grade,
+                i.instructor_id,
+                i.name as instructor_name,
+                d.department_name
+            FROM 
+                enrollments e
+            JOIN 
+                students s ON e.student_id = s.student_id
+            JOIN 
+                courses c ON e.course_id = c.course_id
+            LEFT JOIN 
+                instructors i ON c.instructor_id = i.instructor_id
+            LEFT JOIN 
+                departments d ON c.department_id = d.department_id
+            ORDER BY 
+                s.student_id,
+                CASE 
+                    WHEN e.semester = 'Fall 2025' THEN 1
+                    WHEN e.semester = 'Spring 2025' THEN 2
+                    WHEN e.semester = 'Winter 2025' THEN 3
+                    WHEN e.semester = 'Fall 2024' THEN 4
+                    WHEN e.semester = 'Spring 2024' THEN 5
+                    WHEN e.semester = 'Winter 2024' THEN 6
+                    WHEN e.semester = 'Fall 2023' THEN 7
+                    ELSE 8
+                END,
+                c.course_name
+        """)
 
-        if student is None:
-            flash("Student not found", "danger")
-            return redirect(url_for('list_students'))
+        enrollment_rows = cur.fetchall()
+        students_dict = {}
 
-        # Get student's enrolled courses
-        cur.execute("""
-            SELECT c.course_name, c.credits, e.semester, e.grade, i.name as instructor_name
-            FROM enrollments e
-            JOIN courses c ON e.course_id = c.course_id
-            LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
-            WHERE e.student_id = %s
-            ORDER BY e.semester DESC
-        """, (id,))
-        all_courses = cur.fetchall()
+        for row in enrollment_rows:
+            student_id = row[1]
+            enrollment = {
+                'enrollment_id': row[0],
+                'course_id': row[3],
+                'course_name': row[4],
+                'semester': row[5],
+                'grade': row[6],
+                'instructor_id': row[7],
+                'instructor_name': row[8],
+                'department_name': row[9]
+            }
 
-        # Separate courses into current (no grade) and completed (with grade)
-        current_courses = []
-        completed_courses = []
-        current_credits = 0
+            if student_id not in students_dict:
+                students_dict[student_id] = {
+                    'student_id': student_id,
+                    'student_name': row[2],
+                    'enrollments': [],
+                    'total_courses': 0,
+                    'current_courses': 0
+                }
 
-        for course in all_courses:
-            credits = course[1] or 0  # Default to 0 if credits is None
+            students_dict[student_id]['enrollments'].append(enrollment)
+            students_dict[student_id]['total_courses'] += 1
 
-            if course[3] is None:  # No grade means currently enrolled
-                current_courses.append(course)
-                current_credits += credits
-            else:  # Has grade means completed
-                completed_courses.append(course)
+            if row[5] == 'Fall 2025':
+                students_dict[student_id]['current_courses'] += 1
 
-        # Calculate GPA using the dedicated function
-        gpa, completed_credits, gpa_points = calculate_gpa(all_courses)
+        students = list(students_dict.values())
+        students.sort(key=lambda x: x['student_id'])
 
         cur.close()
-        return render_template(
-            'student_detail.html',
-            student=student,
-            current_courses=current_courses,
-            completed_courses=completed_courses,
-            gpa=gpa,
-            completed_credits=completed_credits,
-            current_credits=current_credits
-        )
+        return render_template('enrollments_list.html', students=students)
     finally:
         release_db_connection(conn)
 
