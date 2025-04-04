@@ -62,13 +62,13 @@
                                             <tbody>
                                 {% endif %}
 
-                                <tr>
-                                    <td>{{ course.course_id }}</td>
-                                    <td>{{ course.course_name }}</td>
-                                    <td>{{ course.credits }}</td>
-                                    <td>{{ course.instructor_name or "Not Assigned" }}</td>
-                                    <td><span class="badge bg-dark">{{ course.enrolled_count }}</span></td>
-                                </tr>
+<tr onclick="window.location='{{ url_for('course_detail', id=course.course_id) }}';" style="cursor: pointer;">
+    <td>{{ course.course_id }}</td>
+    <td>{{ course.course_name }}</td>
+    <td>{{ course.credits }}</td>
+    <td>{{ course.instructor_name or "Not Assigned" }}</td>
+    <td><span class="badge bg-dark">{{ course.enrolled_count }}</span></td>
+</tr>
                             {% endfor %}
 
                             {% if current_courses %}

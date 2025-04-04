@@ -392,6 +392,94 @@ def update_course(id):
     finally:
         release_db_connection(conn)
 
+
+@app.route('/course/<int:id>')
+def course_detail(id):
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Get course details
+        cur.execute("""
+            SELECT c.course_id, c.course_name, c.credits, c.department_id, c.instructor_id,
+                   d.department_name, i.name as instructor_name
+            FROM courses c
+            LEFT JOIN departments d ON c.department_id = d.department_id
+            LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
+            WHERE c.course_id = %s
+        """, (id,))
+        course_data = cur.fetchone()
+
+        if course_data is None:
+            flash("Course not found", "danger")
+            return redirect(url_for('course_offerings'))
+
+        # Create a dictionary for easier template access
+        course = {
+            'course_id': course_data[0],
+            'course_name': course_data[1],
+            'credits': course_data[2],
+            'department_id': course_data[3],
+            'instructor_id': course_data[4],
+            'department_name': course_data[5],
+            'instructor_name': course_data[6]
+        }
+
+        # Get current semester - Fixed query to avoid ORDER BY with DISTINCT
+        cur.execute("""
+            SELECT semester FROM (
+                SELECT semester,
+                       CASE 
+                           WHEN semester = 'Fall 2025' THEN 1
+                           WHEN semester = 'Spring 2025' THEN 2
+                           WHEN semester = 'Winter 2025' THEN 3
+                           ELSE 4
+                       END AS semester_order
+                FROM enrollments 
+                WHERE course_id = %s
+                GROUP BY semester
+            ) AS semesters
+            ORDER BY semester_order
+            LIMIT 1
+        """, (id,))
+        semester_row = cur.fetchone()
+        course['semester'] = semester_row[0] if semester_row else None
+
+        # Get enrolled students
+        cur.execute("""
+            SELECT e.enrollment_id, s.student_id, s.name AS student_name, 
+                   d.department_name, e.semester, e.grade
+            FROM enrollments e
+            JOIN students s ON e.student_id = s.student_id
+            LEFT JOIN departments d ON s.department_id = d.department_id
+            WHERE e.course_id = %s
+            ORDER BY e.semester, s.name
+        """, (id,))
+
+        enrolled_students = []
+        for row in cur.fetchall():
+            enrolled_students.append({
+                'enrollment_id': row[0],
+                'student_id': row[1],
+                'student_name': row[2],
+                'department_name': row[3],
+                'semester': row[4],
+                'grade': row[5]
+            })
+
+        cur.close()
+        return render_template(
+            'course_detail.html',
+            course=course,
+            enrolled_students=enrolled_students
+        )
+    except Exception as e:
+        print(f"Error in course_detail: {str(e)}")
+        flash(f"Error retrieving course details: {str(e)}", "danger")
+        return redirect(url_for('course_offerings'))
+    finally:
+        release_db_connection(conn)
+
 @app.route('/courses/delete/<int:id>', methods=['POST'])
 def delete_course(id):
     conn = get_db_connection()

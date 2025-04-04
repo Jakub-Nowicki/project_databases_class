@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+</body>
+{% extends "base.html" %}
+
+{% block title %}Course Details{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0 rounded-lg mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('course_offerings') }}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                        <h2 class="mb-0 text-center flex-grow-1">Course Details</h2>
+                        <div style="width: 70px;"></div>
+                    </div>
+                </div>
+
+                <div class="card-body bg-light">
+                    <div class="mb-4 p-4 bg-white rounded shadow-sm">
+                        <h3 class="border-bottom pb-2 mb-3">{{ course.course_name }}</h3>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Course ID:</strong> {{ course.course_id }}</p>
+                                <p><strong>Department:</strong> {{ course.department_name }}</p>
+                                <p><strong>Credits:</strong> {{ course.credits }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p>
+    <strong>Instructor:</strong>
+    {% if course.instructor_name %}
+        {{ course.instructor_name }}
+    {% else %}
+        <span class="text-muted">Unassigned</span>
+    {% endif %}
+</p>
+                                <p><strong>Semester:</strong> {{ course.semester or "Not currently offered" }}</p>
+                                <p><strong>Enrolled Students:</strong> {{ enrolled_students|length }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user-graduate me-2"></i> Enrolled Students
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if enrolled_students %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Name</th>
+                                                <th>Department</th>
+                                                <th>Semester</th>
+                                                <th>Grade</th>
+                                                <th class="text-end">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for student in enrolled_students %}
+                                            <tr>
+                                                <td>{{ student.student_id }}</td>
+                                                <td>{{ student.student_name }}</td>
+                                                <td>{{ student.department_name }}</td>
+                                                <td>
+                                                    <span class="badge {% if student.semester == 'Fall 2025' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                        {{ student.semester }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    {% if student.grade %}
+                                                        <span class="badge
+                                                            {% if student.grade.startswith('A') %}bg-success{%
+                                                            elif student.grade.startswith('B') %}bg-primary{%
+                                                            elif student.grade.startswith('C') %}bg-warning text-dark{%
+                                                            elif student.grade.startswith('D') %}bg-danger{%
+                                                            else %}bg-dark{% endif %}">
+                                                            {{ student.grade }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-light text-dark">In Progress</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-end">
+                                                    <a href="{{ url_for('student_detail', id=student.student_id) }}" class="btn btn-primary btn-sm">
+                                                        <i class="fas fa-user-circle me-1"></i> View Profile
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-secondary m-3">
+                                    <i class="fas fa-info-circle me-2"></i> No students are currently enrolled in this course.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}
