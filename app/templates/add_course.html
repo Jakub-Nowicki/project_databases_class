@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Add Course{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0 rounded-lg mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="/courses/manage" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                        <h2 class="mb-0 text-center flex-grow-1">Add New Course</h2>
+                        <div style="width: 70px;"></div>
+                    </div>
+                </div>
+
+                <div class="card-body bg-light">
+                    {% if message %}
+                    <div class="alert alert-{{ message_type }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" action="{{ url_for('add_course') }}">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="course_name" class="form-label">Course Name</label>
+                                    <input type="text" class="form-control" id="course_name" name="course_name" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="credits" class="form-label">Credits</label>
+                                    <input type="number" class="form-control" id="credits" name="credits" min="1" max="6" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="course_id" class="form-label">Course ID (Optional)</label>
+                                    <input type="text" class="form-control" id="course_id" name="course_id" 
+                                           placeholder="Leave blank for auto-generated ID">
+                                    <small class="form-text text-muted">If left blank, an ID will be automatically assigned.</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="department_id" class="form-label">Department</label>
+                                    <select class="form-select" id="department_id" name="department_id" required>
+                                        <option value="" selected disabled>Select Department</option>
+                                        {% for dept in departments %}
+                                        <option value="{{ dept[0] }}">{{ dept[1] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="instructor_id" class="form-label">Instructor</label>
+                                    <select class="form-select" id="instructor_id" name="instructor_id">
+                                        <option value="" selected>Unassigned</option>
+                                        {% for instructor in instructors %}
+                                        <option value="{{ instructor[0] }}">{{ instructor[1] }} ({{ instructor[3] }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="semester" class="form-label">Current Semester Offering</label>
+                                    <select class="form-select" id="semester" name="semester">
+                                        <option value="" selected>Not Currently Offered</option>
+                                        <option value="Fall 2025">Fall 2025</option>
+                                        <option value="Spring 2025">Spring 2025</option>
+                                        <option value="Winter 2025">Winter 2025</option>
+                                    </select>
+                                    <small class="form-text text-muted">Select if this course is being offered in the current academic year.</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-dark btn-lg px-5">
+                                <i class="fas fa-save me-2"></i> Add Course
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}

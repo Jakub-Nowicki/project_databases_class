@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Enrollment{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0 rounded-lg mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('edit_enrollments', student_id=enrollment[0]) }}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                        <h2 class="mb-0 text-center flex-grow-1">Edit Enrollment</h2>
+                        <div style="width: 70px;"></div>
+                    </div>
+                </div>
+
+                <div class="card-body bg-light">
+                    {% if message %}
+                    <div class="alert alert-{{ message_type }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-4">
+                        <div class="alert alert-secondary">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-3">
+                                    <div class="avatar-circle" style="width: 50px; height: 50px;">
+                                        <span class="initials" style="font-size: 24px;">{{ enrollment[4][0] }}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1">{{ enrollment[4] }}</h5>
+                                    <p class="mb-0 text-muted">Student ID: {{ enrollment[0] }}</p>
+                                </div>
+                            </div>
+                            <div class="bg-white p-3 rounded">
+                                <h6 class="border-bottom pb-2 mb-2">Course Information</h6>
+                                <p class="mb-1"><strong>Course:</strong> {{ enrollment[5] }}</p>
+                                <p class="mb-0"><strong>Course ID:</strong> {{ enrollment[1] }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="post" action="{{ url_for('update_enrollment', enrollment_id=enrollment_id) }}">
+                        <div class="mb-3">
+                            <label for="semester" class="form-label">Semester</label>
+                            <select class="form-select" id="semester" name="semester" required>
+                                {% for semester in semesters %}
+                                <option value="{{ semester }}" {% if semester == enrollment[2] %}selected{% endif %}>
+                                    {{ semester }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="grade" class="form-label">Grade (leave blank for current courses)</label>
+                            <select class="form-select" id="grade" name="grade">
+                                <option value="" {% if not enrollment[3] %}selected{% endif %}>No Grade (In Progress)</option>
+                                {% for grade in grades %}
+                                <option value="{{ grade }}" {% if grade == enrollment[3] %}selected{% endif %}>
+                                    {{ grade }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                <i class="fas fa-trash me-2"></i> Delete Enrollment
+                            </button>
+                            
+                            <button type="submit" class="btn btn-dark">
+                                <i class="fas fa-save me-2"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this enrollment?</p>
+                <div class="alert alert-warning">
+                    <strong>Warning:</strong> This action cannot be undone.
+                </div>
+                <div class="bg-light p-3 rounded">
+                    <p class="mb-1"><strong>Student:</strong> {{ enrollment[4] }}</p>
+                    <p class="mb-1"><strong>Course:</strong> {{ enrollment[5] }}</p>
+                    <p class="mb-1"><strong>Semester:</strong> {{ enrollment[2] }}</p>
+                    <p class="mb-0"><strong>Grade:</strong> {{ enrollment[3] or "In Progress" }}</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('delete_enrollment', enrollment_id=enrollment_id) }}" method="post">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i> Delete Enrollment
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .avatar-circle {
+        background-color: #343a40;
+        text-align: center;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .initials {
+        color: #fff;
+        font-weight: bold;
+    }
+</style>
+
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}

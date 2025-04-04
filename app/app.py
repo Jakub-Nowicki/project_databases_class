@@ -14,6 +14,8 @@ connection_pool = psycopg2.pool.SimpleConnectionPool(
     port="5432"
 )
 
+app.secret_key = 'your_secret_key_here'  # Replace with a secure key in production
+
 def get_db_connection():
     return connection_pool.getconn()
 
@@ -38,75 +40,342 @@ def manage_students():
     return render_template('manage_students.html')
 
 
-@app.route('/students/add', methods=['GET', 'POST'])
-def add_student():
+# Add these routes to your app.py file for course management
+
+@app.route('/courses/manage')
+def manage_courses():
+    return render_template('manage_courses.html')
+
+
+@app.route('/courses/add', methods=['GET', 'POST'])
+def add_course():
     conn = get_db_connection()
     try:
         if request.method == 'POST':
-            name = request.form['name']
-            age = request.form['age']
-            email = request.form['email']
-            major = request.form['major']
+            course_name = request.form['course_name']
+            credits = request.form['credits']
             department_id = request.form['department_id']
-            student_id = request.form.get('student_id', '').strip()
+            instructor_id = request.form.get('instructor_id', '')
+            semester = request.form.get('semester', '')
+            course_id = request.form.get('course_id', '').strip()
+
+            if not instructor_id:  # Convert empty string to None for database
+                instructor_id = None
 
             cur = conn.cursor()
 
-            # Check if email already exists
-            cur.execute("SELECT COUNT(*) FROM students WHERE email = %s", (email,))
-            if cur.fetchone()[0] > 0:
-                cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
-                departments = cur.fetchall()
-                cur.close()
-                return render_template('student_add.html',
-                                       message="Email already exists in the database.",
-                                       message_type="danger",
-                                       departments=departments)
-
-            # Insert new student
-            if student_id:
-                # Check if ID already exists
-                cur.execute("SELECT COUNT(*) FROM students WHERE student_id = %s", (student_id,))
+            # Check if course ID already exists (if provided)
+            if course_id:
+                cur.execute("SELECT COUNT(*) FROM courses WHERE course_id = %s", (course_id,))
                 if cur.fetchone()[0] > 0:
                     cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
                     departments = cur.fetchall()
+                    cur.execute(
+                        "SELECT instructor_id, name, email, department_name FROM instructors i JOIN departments d ON i.department_id = d.department_id ORDER BY name")
+                    instructors = cur.fetchall()
                     cur.close()
-                    return render_template('student_add.html',
-                                           message="Student ID already exists. Please use a different ID or leave blank for auto-generation.",
+                    return render_template('add_course.html',
+                                           message="Course ID already exists. Please use a different ID or leave blank for auto-generation.",
                                            message_type="danger",
-                                           departments=departments)
+                                           departments=departments,
+                                           instructors=instructors)
 
                 # Insert with provided ID
                 cur.execute("""
-                    INSERT INTO students (student_id, name, age, email, major, department_id)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """, (student_id, name, age, email, major, department_id))
+                    INSERT INTO courses (course_id, course_name, credits, department_id, instructor_id)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (course_id, course_name, credits, department_id, instructor_id))
             else:
                 # Auto-generate ID
                 cur.execute("""
-                    INSERT INTO students (name, age, email, major, department_id)
-                    VALUES (%s, %s, %s, %s, %s)
-                    RETURNING student_id
-                """, (name, age, email, major, department_id))
-                student_id = cur.fetchone()[0]
+                    INSERT INTO courses (course_name, credits, department_id, instructor_id)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING course_id
+                """, (course_name, credits, department_id, instructor_id))
+                course_id = cur.fetchone()[0]
+
+            # Add semester enrollment if specified
+            if semester:
+                cur.execute("""
+                    INSERT INTO course_offerings (course_id, semester)
+                    VALUES (%s, %s)
+                """, (course_id, semester))
 
             conn.commit()
-            flash("Student added successfully!", "success")
-            return redirect(url_for('edit_student', id=student_id))
+            flash("Course added successfully!", "success")
+            return redirect(url_for('edit_course', id=course_id))
 
         # GET request - show form
         cur = conn.cursor()
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
+        cur.execute("""
+            SELECT i.instructor_id, i.name, i.email, d.department_name 
+            FROM instructors i 
+            JOIN departments d ON i.department_id = d.department_id 
+            ORDER BY i.name
+        """)
+        instructors = cur.fetchall()
         cur.close()
-        return render_template('add_student.html', departments=departments)
+        return render_template('add_course.html', departments=departments, instructors=instructors)
     except Exception as e:
         conn.rollback()
-        flash(f"Error adding student: {str(e)}", "danger")
-        return redirect(url_for('manage_students'))
+        flash(f"Error adding course: {str(e)}", "danger")
+        return redirect(url_for('manage_courses'))
     finally:
         release_db_connection(conn)
 
+
+@app.route('/courses/edit')
+def edit_courses():
+    conn = get_db_connection()
+    try:
+        search_query = request.args.get('search', '')
+        department_filter = request.args.get('department', '')
+        page = int(request.args.get('page', 1))
+        per_page = 30  # Number of courses per page
+
+        cur = conn.cursor()
+
+        # Get departments for filter dropdown
+        cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
+        departments = cur.fetchall()
+
+        # Base query
+        query = """
+            SELECT c.course_id, c.course_name, c.credits, c.department_id, c.instructor_id,
+                   d.department_name, i.name as instructor_name
+            FROM courses c
+            LEFT JOIN departments d ON c.department_id = d.department_id
+            LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
+            WHERE 1=1
+        """
+        params = []
+
+        # Add search condition if search query exists
+        if search_query:
+            query += " AND (c.course_id::text ILIKE %s OR c.course_name ILIKE %s)"
+            search_pattern = f"%{search_query}%"
+            params.extend([search_pattern, search_pattern])
+
+        # Add department filter if selected
+        if department_filter:
+            query += " AND c.department_id = %s"
+            params.append(department_filter)
+
+        # Add ordering
+        query += " ORDER BY c.course_id"
+
+        # Get total count for pagination
+        count_query = f"SELECT COUNT(*) FROM ({query}) AS count_query"
+        cur.execute(count_query, params)
+        total_count = cur.fetchone()[0]
+
+        # Calculate pagination
+        total_pages = (total_count + per_page - 1) // per_page
+        offset = (page - 1) * per_page
+
+        # Add pagination to the query
+        query += " LIMIT %s OFFSET %s"
+        params.extend([per_page, offset])
+
+        # Execute final query
+        cur.execute(query, params)
+        courses = cur.fetchall()
+
+        cur.close()
+        return render_template(
+            'edit_courses.html',
+            courses=courses,
+            departments=departments,
+            search_query=search_query,
+            department_filter=department_filter,
+            page=page,
+            total_pages=total_pages,
+            total_count=total_count
+        )
+    finally:
+        release_db_connection(conn)
+
+
+@app.route('/courses/edit/<int:id>', methods=['GET'])
+def edit_course(id):
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Get course details
+        cur.execute("""
+            SELECT c.course_id, c.course_name, c.credits, c.department_id, c.instructor_id,
+                   d.department_name, i.name as instructor_name
+            FROM courses c
+            LEFT JOIN departments d ON c.department_id = d.department_id
+            LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
+            WHERE c.course_id = %s
+        """, (id,))
+        course = cur.fetchone()
+
+        if course is None:
+            flash("Course not found", "danger")
+            return redirect(url_for('edit_courses'))
+
+        # Get enrollment count
+        cur.execute("""
+            SELECT COUNT(*) FROM enrollments WHERE course_id = %s
+        """, (id,))
+        enrolled_count = cur.fetchone()[0]
+
+        # Get current semester offerings
+        cur.execute("""
+            SELECT DISTINCT semester FROM enrollments WHERE course_id = %s
+        """, (id,))
+        offered_semesters = [row[0] for row in cur.fetchall()]
+
+        # Get current semester (most recent one)
+        current_semester = None
+        if offered_semesters:
+            semester_order = {
+                'Fall 2025': 1,
+                'Spring 2025': 2,
+                'Winter 2025': 3,
+                'Fall 2024': 4,
+                'Spring 2024': 5,
+                'Winter 2024': 6,
+                'Fall 2023': 7
+            }
+            current_semester = min(offered_semesters, key=lambda s: semester_order.get(s, 999))
+
+        # Get enrolled students
+        cur.execute("""
+            SELECT e.enrollment_id, s.student_id, s.name AS student_name, e.semester, e.grade
+            FROM enrollments e
+            JOIN students s ON e.student_id = s.student_id
+            WHERE e.course_id = %s
+            ORDER BY e.semester, s.name
+        """, (id,))
+
+        enrolled_students = []
+        for row in cur.fetchall():
+            enrolled_students.append({
+                'enrollment_id': row[0],
+                'student_id': row[1],
+                'student_name': row[2],
+                'semester': row[3],
+                'grade': row[4]
+            })
+
+        # Get departments for dropdown
+        cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
+        departments = cur.fetchall()
+
+        # Get instructors for dropdown
+        cur.execute("""
+            SELECT i.instructor_id, i.name, i.email, d.department_name 
+            FROM instructors i 
+            JOIN departments d ON i.department_id = d.department_id 
+            ORDER BY i.name
+        """)
+        instructors = cur.fetchall()
+
+        # Available semesters
+        semesters = ['Fall 2023', 'Winter 2024', 'Spring 2024', 'Fall 2024', 'Winter 2025', 'Spring 2025', 'Fall 2025']
+
+        cur.close()
+        return render_template(
+            'edit_course.html',
+            course=course,
+            enrolled_count=enrolled_count,
+            enrolled_students=enrolled_students,
+            current_semester=current_semester,
+            offered_semesters=offered_semesters,
+            departments=departments,
+            instructors=instructors,
+            semesters=semesters
+        )
+    finally:
+        release_db_connection(conn)
+
+
+@app.route('/courses/update/<int:id>', methods=['POST'])
+def update_course(id):
+    conn = get_db_connection()
+    try:
+        course_name = request.form['course_name']
+        credits = request.form['credits']
+        department_id = request.form['department_id']
+        instructor_id = request.form.get('instructor_id', '')
+
+        # Handle empty instructor selection
+        if not instructor_id:
+            instructor_id = None
+
+        cur = conn.cursor()
+
+        # Update course record
+        cur.execute("""
+            UPDATE courses
+            SET course_name = %s, credits = %s, department_id = %s, instructor_id = %s
+            WHERE course_id = %s
+        """, (course_name, credits, department_id, instructor_id, id))
+
+        # Handle semester offerings
+        selected_semesters = request.form.getlist('semesters[]')
+
+        # Get current semester offerings
+        cur.execute("SELECT DISTINCT semester FROM enrollments WHERE course_id = %s", (id,))
+        current_semesters = [row[0] for row in cur.fetchall()]
+
+        # Semesters to add
+        for semester in selected_semesters:
+            if semester not in current_semesters:
+                # Check if any students are enrolled for this semester
+                cur.execute("""
+                    SELECT COUNT(*) FROM enrollments 
+                    WHERE course_id = %s AND semester = %s
+                """, (id, semester))
+
+                # If no enrollments exist for this semester, create a placeholder enrollment
+                if cur.fetchone()[0] == 0:
+                    cur.execute("""
+                        INSERT INTO course_offerings (course_id, semester)
+                        VALUES (%s, %s)
+                    """, (id, semester))
+
+        # Semesters to remove (not implemented, as it would require deleting student enrollments)
+        # This is usually handled through a more complex process
+
+        conn.commit()
+        flash("Course updated successfully", "success")
+        return redirect(url_for('edit_course', id=id))
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error updating course: {str(e)}", "danger")
+        return redirect(url_for('edit_course', id=id))
+    finally:
+        release_db_connection(conn)
+
+
+@app.route('/courses/delete/<int:id>', methods=['POST'])
+def delete_course(id):
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Delete all enrollments first (due to foreign key constraint)
+        cur.execute("DELETE FROM enrollments WHERE course_id = %s", (id,))
+
+        # Delete course record
+        cur.execute("DELETE FROM courses WHERE course_id = %s", (id,))
+
+        conn.commit()
+        flash("Course deleted successfully", "success")
+        return redirect(url_for('edit_courses'))
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error deleting course: {str(e)}", "danger")
+        return redirect(url_for('edit_course', id=id))
+    finally:
+        release_db_connection(conn)
 
 @app.route('/students/edit')
 def edit_students():
@@ -115,7 +384,7 @@ def edit_students():
         search_query = request.args.get('search', '')
         department_filter = request.args.get('department', '')
         page = int(request.args.get('page', 1))
-        per_page = 10  # Number of students per page
+        per_page = 30  # Updated to 30 students per page as requested
 
         cur = conn.cursor()
 
@@ -143,8 +412,8 @@ def edit_students():
             query += " AND s.department_id = %s"
             params.append(department_filter)
 
-        # Add ordering
-        query += " ORDER BY s.name"
+        # Add ordering by student ID instead of name
+        query += " ORDER BY s.student_id"
 
         # Get total count for pagination
         count_query = f"SELECT COUNT(*) FROM ({query}) AS count_query"
@@ -165,13 +434,14 @@ def edit_students():
 
         cur.close()
         return render_template(
-            'edit_student.html',
+            'edit_student.html',  # This file exists in your uploads
             students=students,
             departments=departments,
             search_query=search_query,
             department_filter=department_filter,
             page=page,
-            total_pages=total_pages
+            total_pages=total_pages,
+            total_count=total_count  # Added for "showing X of Y" display
         )
     finally:
         release_db_connection(conn)
@@ -221,11 +491,325 @@ def edit_student(id):
 
         cur.close()
         return render_template(
-            'edit_student.html',
+            'edit_idnividual.html',  # Use the individual edit template file
             student=student,
             enrollments=enrollments,
             departments=departments
         )
+    finally:
+        release_db_connection(conn)
+
+
+# Add these enrollment management routes to your app.py file
+
+@app.route('/students/enrollments/<int:student_id>', methods=['GET'])
+def edit_enrollments(student_id):
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Get student info
+        cur.execute("""
+            SELECT s.student_id, s.name, s.email, d.department_name
+            FROM students s
+            LEFT JOIN departments d ON s.department_id = d.department_id
+            WHERE s.student_id = %s
+        """, (student_id,))
+        student = cur.fetchone()
+
+        if not student:
+            flash("Student not found", "danger")
+            return redirect(url_for('edit_students'))
+
+        # Get student enrollments
+        cur.execute("""
+            SELECT e.enrollment_id, c.course_id, c.course_name, e.semester, e.grade,
+                  i.name as instructor_name, d.department_name
+            FROM enrollments e
+            JOIN courses c ON e.course_id = c.course_id
+            LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
+            LEFT JOIN departments d ON c.department_id = d.department_id
+            WHERE e.student_id = %s
+            ORDER BY 
+                CASE 
+                    WHEN e.semester = 'Fall 2025' THEN 1
+                    WHEN e.semester = 'Spring 2025' THEN 2
+                    WHEN e.semester = 'Winter 2025' THEN 3
+                    WHEN e.semester = 'Fall 2024' THEN 4
+                    ELSE 5
+                END,
+                c.course_name
+        """, (student_id,))
+        enrollments = cur.fetchall()
+
+        # Get available courses for adding new enrollments
+        cur.execute("""
+            SELECT c.course_id, c.course_name, d.department_name, i.name as instructor_name
+            FROM courses c
+            LEFT JOIN departments d ON c.department_id = d.department_id
+            LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
+            ORDER BY d.department_name, c.course_name
+        """)
+        available_courses = cur.fetchall()
+
+        # Get available semesters
+        semesters = ['Fall 2023', 'Winter 2024', 'Spring 2024', 'Fall 2024', 'Winter 2025', 'Spring 2025', 'Fall 2025']
+
+        # Get grade options
+        grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F']
+
+        cur.close()
+        return render_template(
+            'edit_enrollments.html',  # You'll need to create this template
+            student=student,
+            enrollments=enrollments,
+            available_courses=available_courses,
+            semesters=semesters,
+            grades=grades
+        )
+    except Exception as e:
+        flash(f"Error: {str(e)}", "danger")
+        return redirect(url_for('edit_student', id=student_id))
+    finally:
+        release_db_connection(conn)
+
+
+@app.route('/students/enrollment/add/<int:student_id>', methods=['GET', 'POST'])
+def add_enrollment(student_id):
+    conn = get_db_connection()
+    try:
+        if request.method == 'POST':
+            course_id = request.form['course_id']
+            semester = request.form['semester']
+            grade = request.form.get('grade', None)
+            if grade == '':
+                grade = None
+
+            # Check if enrollment already exists
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT COUNT(*) FROM enrollments 
+                WHERE student_id = %s AND course_id = %s AND semester = %s
+            """, (student_id, course_id, semester))
+
+            if cur.fetchone()[0] > 0:
+                flash("Enrollment already exists for this student, course, and semester", "danger")
+                return redirect(url_for('add_enrollment', student_id=student_id))
+
+            # Add enrollment
+            cur.execute("""
+                INSERT INTO enrollments (student_id, course_id, semester, grade)
+                VALUES (%s, %s, %s, %s)
+            """, (student_id, course_id, semester, grade))
+
+            conn.commit()
+            flash("Enrollment added successfully", "success")
+            return redirect(url_for('edit_enrollments', student_id=student_id))
+
+        # GET request - show form
+        cur = conn.cursor()
+
+        # Get student info
+        cur.execute("""
+            SELECT s.student_id, s.name
+            FROM students s
+            WHERE s.student_id = %s
+        """, (student_id,))
+        student = cur.fetchone()
+
+        if not student:
+            flash("Student not found", "danger")
+            return redirect(url_for('edit_students'))
+
+        # Get available courses
+        cur.execute("""
+            SELECT c.course_id, c.course_name, d.department_name
+            FROM courses c
+            LEFT JOIN departments d ON c.department_id = d.department_id
+            ORDER BY d.department_name, c.course_name
+        """)
+        courses = cur.fetchall()
+
+        # Get available semesters
+        semesters = ['Fall 2023', 'Winter 2024', 'Spring 2024', 'Fall 2024', 'Winter 2025', 'Spring 2025', 'Fall 2025']
+
+        # Get grade options
+        grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F']
+
+        cur.close()
+        return render_template(
+            'add_enrollment.html',  # You'll need to create this template
+            student=student,
+            courses=courses,
+            semesters=semesters,
+            grades=grades
+        )
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error: {str(e)}", "danger")
+        return redirect(url_for('edit_student', id=student_id))
+    finally:
+        release_db_connection(conn)
+
+
+@app.route('/students/enrollment/edit/<int:enrollment_id>', methods=['GET', 'POST'])
+def update_enrollment(enrollment_id):
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Get enrollment details first (needed for both GET and POST)
+        cur.execute("""
+            SELECT e.student_id, e.course_id, e.semester, e.grade,
+                   s.name as student_name, c.course_name
+            FROM enrollments e
+            JOIN students s ON e.student_id = s.student_id
+            JOIN courses c ON e.course_id = c.course_id
+            WHERE e.enrollment_id = %s
+        """, (enrollment_id,))
+        enrollment = cur.fetchone()
+
+        if not enrollment:
+            flash("Enrollment not found", "danger")
+            return redirect(url_for('edit_students'))
+
+        student_id = enrollment[0]
+
+        if request.method == 'POST':
+            semester = request.form['semester']
+            grade = request.form.get('grade', None)
+            if grade == '':
+                grade = None
+
+            # Update enrollment
+            cur.execute("""
+                UPDATE enrollments
+                SET semester = %s, grade = %s
+                WHERE enrollment_id = %s
+            """, (semester, grade, enrollment_id))
+
+            conn.commit()
+            flash("Enrollment updated successfully", "success")
+            return redirect(url_for('edit_enrollments', student_id=student_id))
+
+        # GET request - show form
+        # Get available semesters
+        semesters = ['Fall 2023', 'Winter 2024', 'Spring 2024', 'Fall 2024', 'Winter 2025', 'Spring 2025', 'Fall 2025']
+
+        # Get grade options
+        grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F']
+
+        cur.close()
+        return render_template(
+            'edit_enrollment.html',  # You'll need to create this template
+            enrollment=enrollment,
+            enrollment_id=enrollment_id,
+            semesters=semesters,
+            grades=grades
+        )
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error: {str(e)}", "danger")
+        return redirect(url_for('edit_enrollments', student_id=student_id))
+    finally:
+        release_db_connection(conn)
+
+
+@app.route('/students/enrollment/delete/<int:enrollment_id>', methods=['POST'])
+def delete_enrollment(enrollment_id):
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Get student_id first for redirect
+        cur.execute("SELECT student_id FROM enrollments WHERE enrollment_id = %s", (enrollment_id,))
+        result = cur.fetchone()
+
+        if not result:
+            flash("Enrollment not found", "danger")
+            return redirect(url_for('edit_students'))
+
+        student_id = result[0]
+
+        # Delete enrollment
+        cur.execute("DELETE FROM enrollments WHERE enrollment_id = %s", (enrollment_id,))
+
+        conn.commit()
+        flash("Enrollment deleted successfully", "success")
+        return redirect(url_for('edit_enrollments', student_id=student_id))
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error: {str(e)}", "danger")
+        return redirect(url_for('edit_enrollments', student_id=student_id))
+    finally:
+        release_db_connection(conn)
+
+@app.route('/students/add', methods=['GET', 'POST'])
+def add_student():
+    conn = get_db_connection()
+    try:
+        if request.method == 'POST':
+            name = request.form['name']
+            age = request.form['age']
+            email = request.form['email']
+            major = request.form['major']
+            department_id = request.form['department_id']
+            student_id = request.form.get('student_id', '').strip()
+
+            cur = conn.cursor()
+
+            # Check if email already exists
+            cur.execute("SELECT COUNT(*) FROM students WHERE email = %s", (email,))
+            if cur.fetchone()[0] > 0:
+                cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
+                departments = cur.fetchall()
+                cur.close()
+                return render_template('add_student.html',  # This file exists in your uploads
+                                       message="Email already exists in the database.",
+                                       message_type="danger",
+                                       departments=departments)
+
+            # Insert new student
+            if student_id:
+                # Check if ID already exists
+                cur.execute("SELECT COUNT(*) FROM students WHERE student_id = %s", (student_id,))
+                if cur.fetchone()[0] > 0:
+                    cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
+                    departments = cur.fetchall()
+                    cur.close()
+                    return render_template('add_student.html',  # This file exists in your uploads
+                                           message="Student ID already exists. Please use a different ID or leave blank for auto-generation.",
+                                           message_type="danger",
+                                           departments=departments)
+
+                # Insert with provided ID
+                cur.execute("""
+                    INSERT INTO students (student_id, name, age, email, major, department_id)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (student_id, name, age, email, major, department_id))
+            else:
+                # Auto-generate ID
+                cur.execute("""
+                    INSERT INTO students (name, age, email, major, department_id)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING student_id
+                """, (name, age, email, major, department_id))
+                student_id = cur.fetchone()[0]
+
+            conn.commit()
+            flash("Student added successfully!", "success")
+            return redirect(url_for('edit_student', id=student_id))
+
+        # GET request - show form
+        cur = conn.cursor()
+        cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
+        departments = cur.fetchall()
+        cur.close()
+        return render_template('add_student.html', departments=departments)  # This file exists in your uploads
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error adding student: {str(e)}", "danger")
+        return redirect(url_for('manage_students'))
     finally:
         release_db_connection(conn)
 
