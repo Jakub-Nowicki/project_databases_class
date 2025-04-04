@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Add Department{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0 rounded-lg mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="/departments/manage" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                        <h2 class="mb-0 text-center flex-grow-1">Add New Department</h2>
+                        <div style="width: 70px;"></div>
+                    </div>
+                </div>
+
+                <div class="card-body bg-light">
+                    {% if message %}
+                    <div class="alert alert-{{ message_type }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" action="{{ url_for('add_department') }}">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="department_name" class="form-label">Department Name</label>
+                                    <input type="text" class="form-control" id="department_name" name="department_name" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="head_of_department" class="form-label">Department Head</label>
+                                    <input type="text" class="form-control" id="head_of_department" name="head_of_department" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="department_id" class="form-label">Department ID (Optional)</label>
+                                    <input type="text" class="form-control" id="department_id" name="department_id" 
+                                           placeholder="Leave blank for auto-generated ID">
+                                    <small class="form-text text-muted">If left blank, an ID will be automatically assigned.</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Initial Instructors (Optional)</label>
+                                    <div class="card">
+                                        <div class="card-body p-0">
+                                            <div class="p-3 bg-light border-bottom">
+                                                <small class="text-muted">You can add instructors to this department later.</small>
+                                            </div>
+                                            <div class="p-3" style="max-height: 200px; overflow-y: auto;">
+                                                {% for instructor in unassigned_instructors %}
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" name="instructors[]" 
+                                                           value="{{ instructor[0] }}" id="instructor{{ instructor[0] }}">
+                                                    <label class="form-check-label" for="instructor{{ instructor[0] }}">
+                                                        {{ instructor[1] }} <small class="text-muted">({{ instructor[2] }})</small>
+                                                    </label>
+                                                </div>
+                                                {% endfor %}
+                                                {% if not unassigned_instructors %}
+                                                <p class="text-muted mb-0">No unassigned instructors available.</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-dark btn-lg px-5">
+                                <i class="fas fa-save me-2"></i> Add Department
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}

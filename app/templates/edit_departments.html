@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Departments{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0 rounded-lg mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="/departments/manage" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                        <h2 class="mb-0 text-center flex-grow-1">Edit Departments</h2>
+                        <div style="width: 70px;"></div>
+                    </div>
+                </div>
+
+                <div class="card-body bg-light">
+                    {% if message %}
+                    <div class="alert alert-{{ message_type }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-4">
+                        <form method="get" action="{{ url_for('edit_departments') }}" class="row g-3">
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="Search by department name" 
+                                           name="search" value="{{ search_query if search_query else '' }}">
+                                    <button class="btn btn-dark" type="submit">
+                                        <i class="fas fa-search"></i> Search
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="{{ url_for('edit_departments') }}" class="btn btn-outline-secondary">
+                                    Reset
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Department Name</th>
+                                    <th>Department Head</th>
+                                    <th>Faculty</th>
+                                    <th>Courses</th>
+                                    <th>Students</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if departments %}
+                                    {% for department in departments %}
+                                    <tr>
+                                        <td>{{ department[0] }}</td>
+                                        <td>{{ department[1] }}</td>
+                                        <td>{{ department[2] }}</td>
+                                        <td>{{ department[5] }}</td>
+                                        <td>{{ department[4] }}</td>
+                                        <td>{{ department[3] }}</td>
+                                        <td class="text-end">
+                                            <a href="{{ url_for('edit_department', id=department[0]) }}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteModal{{ department[0] }}">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                            
+                                            <!-- Delete Confirmation Modal -->
+                                            <div class="modal fade" id="deleteModal{{ department[0] }}" tabindex="-1" 
+                                                 aria-labelledby="deleteModalLabel{{ department[0] }}" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header bg-danger text-white">
+                                                            <h5 class="modal-title" id="deleteModalLabel{{ department[0] }}">Confirm Deletion</h5>
+                                                            <button type="button" class="btn-close btn-close-white" 
+                                                                    data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <p>Are you sure you want to delete this department?</p>
+                                                            <div class="alert alert-warning">
+                                                                <strong>Warning:</strong> This action cannot be undone. All associated 
+                                                                courses, instructors, and student records will need to be reassigned.
+                                                            </div>
+                                                            <div class="bg-light p-3 rounded">
+                                                                <h5 class="mb-1">{{ department[1] }}</h5>
+                                                                <p class="mb-1">ID: {{ department[0] }}</p>
+                                                                <p class="mb-1">Department Head: {{ department[2] }}</p>
+                                                                <div class="mt-2">
+                                                                    <span class="badge bg-info me-2">{{ department[5] }} Faculty</span>
+                                                                    <span class="badge bg-primary me-2">{{ department[4] }} Courses</span>
+                                                                    <span class="badge bg-success">{{ department[3] }} Students</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <form action="{{ url_for('delete_department', id=department[0]) }}" method="post">
+                                                                <button type="submit" class="btn btn-danger">
+                                                                    <i class="fas fa-trash me-1"></i> Delete Department
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            {% if search_query %}
+                                                <div class="alert alert-info mb-0">
+                                                    <i class="fas fa-info-circle me-2"></i> No departments found matching "{{ search_query }}".
+                                                </div>
+                                            {% else %}
+                                                <div class="alert alert-secondary mb-0">
+                                                    <i class="fas fa-building me-2"></i> No departments in the database yet.
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if departments|length > 0 and total_pages > 1 %}
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            <span class="text-muted">Showing {{ departments|length }} of {{ total_count }} department(s)</span>
+                        </div>
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination mb-0">
+                                {% if page > 1 %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('edit_departments', page=page-1, search=search_query) }}">
+                                        Previous
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                                </li>
+                                {% endif %}
+                                
+                                {% set start_page = [1, page - 2]|max %}
+                                {% set end_page = [start_page + 4, total_pages]|min %}
+                                {% set start_page = [end_page - 4, 1]|max %}
+                                
+                                {% for p in range(start_page, end_page + 1) %}
+                                <li class="page-item {% if p == page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('edit_departments', page=p, search=search_query) }}">
+                                        {{ p }}
+                                    </a>
+                                </li>
+                                {% endfor %}
+                                
+                                {% if page < total_pages %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('edit_departments', page=page+1, search=search_query) }}">
+                                        Next
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}

@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Department{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0 rounded-lg mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('edit_departments') }}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                        <h2 class="mb-0 text-center flex-grow-1">Edit Department</h2>
+                        <div style="width: 70px;"></div>
+                    </div>
+                </div>
+
+                <div class="card-body bg-light">
+                    {% if message %}
+                    <div class="alert alert-{{ message_type }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4 p-3 bg-white rounded shadow-sm">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="dept-icon me-3">
+                                <i class="fas fa-university fa-2x"></i>
+                            </div>
+                            <div>
+                                <h3 class="mb-0">{{ department.name }}</h3>
+                                <p class="text-muted mb-0">ID: {{ department.id }}</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-2">
+                                    <span class="badge bg-info text-white p-2 d-flex align-items-center">
+                                        <i class="fas fa-chalkboard-teacher me-2"></i>
+                                        {{ department.instructor_count }} Faculty Members
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-2">
+                                    <span class="badge bg-primary text-white p-2 d-flex align-items-center">
+                                        <i class="fas fa-book me-2"></i>
+                                        {{ department.course_count }} Courses
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-2">
+                                    <span class="badge bg-success text-white p-2 d-flex align-items-center">
+                                        <i class="fas fa-user-graduate me-2"></i>
+                                        {{ department.student_count }} Students
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <ul class="nav nav-tabs mb-4" id="departmentTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="details-tab" data-bs-toggle="tab"
+                                    data-bs-target="#details" type="button" role="tab"
+                                    aria-controls="details" aria-selected="true">
+                                Department Details
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="faculty-tab" data-bs-toggle="tab"
+                                    data-bs-target="#faculty" type="button" role="tab"
+                                    aria-controls="faculty" aria-selected="false">
+                                Faculty
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="departmentTabsContent">
+                        <!-- Department Details Tab -->
+                        <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab">
+                            <form method="post" action="{{ url_for('update_department', id=department.id) }}">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="department_name" class="form-label">Department Name</label>
+                                            <input type="text" class="form-control" id="department_name" name="department_name"
+                                                   value="{{ department.name }}" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="head_of_department" class="form-label">Department Head</label>
+                                            <input type="text" class="form-control" id="head_of_department" name="head_of_department"
+                                                   value="{{ department.head_of_department }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="text-end mt-3">
+                                    <button type="submit" class="btn btn-dark">
+                                        <i class="fas fa-save me-2"></i> Save Changes
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Faculty Tab -->
+                        <div class="tab-pane fade" id="faculty" role="tabpanel" aria-labelledby="faculty-tab">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">Faculty Members</h5>
+                                <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#addInstructorModal">
+                                    <i class="fas fa-plus me-2"></i> Add Instructor
+                                </button>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Courses</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if department.instructors %}
+                                            {% for instructor in department.instructors %}
+                                            <tr>
+                                                <td>{{ instructor.id }}</td>
+                                                <td>{{ instructor.name }}</td>
+                                                <td>{{ instructor.email }}</td>
+                                                <td>{{ instructor.course_count }}</td>
+                                                <td class="text-end">
+                                                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
+                                                            data-bs-target="#removeInstructorModal{{ instructor.id }}">
+                                                        <i class="fas fa-user-minus"></i> Remove
+                                                    </button>
+
+                                                    <!-- Remove Instructor Confirmation Modal -->
+                                                    <div class="modal fade" id="removeInstructorModal{{ instructor.id }}" tabindex="-1"
+                                                         aria-labelledby="removeInstructorModalLabel{{ instructor.id }}" aria-hidden="true">
+                                                        <div class="modal-dialog">
+                                                            <div class="modal-content">
+                                                                <div class="modal-header bg-danger text-white">
+                                                                    <h5 class="modal-title" id="removeInstructorModalLabel{{ instructor.id }}">
+                                                                        Remove Instructor
+                                                                    </h5>
+                                                                    <button type="button" class="btn-close btn-close-white"
+                                                                            data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                </div>
+                                                                <div class="modal-body">
+                                                                    <p>Are you sure you want to remove this instructor from the department?</p>
+                                                                    <div class="alert alert-warning">
+                                                                        <strong>Warning:</strong> This will remove the instructor's department assignment.
+                                                                        All courses taught by this instructor will remain assigned.
+                                                                    </div>
+                                                                    <div class="bg-light p-3 rounded">
+                                                                        <h5 class="mb-1">{{ instructor.name }}</h5>
+                                                                        <p class="mb-1">ID: {{ instructor.id }}</p>
+                                                                        <p class="mb-0">Email: {{ instructor.email }}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                    <form action="{{ url_for('remove_instructor_from_department',
+                                                                                    dept_id=department.id, instructor_id=instructor.id) }}" method="post">
+                                                                        <button type="submit" class="btn btn-danger">
+                                                                            <i class="fas fa-user-minus me-1"></i> Remove Instructor
+                                                                        </button>
+                                                                    </form>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="5" class="text-center py-4">
+                                                    <div class="alert alert-secondary mb-0">
+                                                        <i class="fas fa-info-circle me-2"></i> No instructors in this department yet.
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+
+
+<!-- Add Instructor Modal -->
+<div class="modal fade" id="addInstructorModal" tabindex="-1" aria-labelledby="addInstructorModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="addInstructorModalLabel">Add Instructor to Department</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addInstructorForm" action="{{ url_for('add_instructor_to_department', dept_id=department.id) }}" method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Select Instructor</label>
+                        {% if available_instructors %}
+                            <select class="form-select" name="instructor_id" required>
+                                <option value="" selected disabled>Choose an instructor</option>
+                                {% for instructor in available_instructors %}
+                                <option value="{{ instructor[0] }}">{{ instructor[1] }} ({{ instructor[2] }})</option>
+                                {% endfor %}
+                            </select>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> No instructors available to add to this department.
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="createNewInstructor" name="createNew">
+                        <label class="form-check-label" for="createNewInstructor">
+                            Create a new instructor instead
+                        </label>
+                    </div>
+
+                    <div id="newInstructorFields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="instructor_name" class="form-label">Instructor Name</label>
+                            <input type="text" class="form-control" id="instructor_name" name="instructor_name">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="instructor_email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="instructor_email" name="instructor_email">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="addInstructorForm" class="btn btn-dark">
+                    <i class="fas fa-user-plus me-1"></i> Add to Department
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Department Modal -->
+<div class="modal fade" id="deleteDepartmentModal" tabindex="-1" aria-labelledby="deleteDepartmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteDepartmentModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this department?</p>
+                <div class="alert alert-warning">
+                    <strong>Warning:</strong> This action cannot be undone. All associated courses, instructors, and students
+                    will need to be reassigned to other departments.
+                </div>
+                <div class="bg-light p-3 rounded">
+                    <h5 class="mb-1">{{ department.name }}</h5>
+                    <p class="mb-1">Department Head: {{ department.head_of_department }}</p>
+                    <div class="mt-2">
+                        <span class="badge bg-info me-2">{{ department.instructor_count }} Faculty</span>
+                        <span class="badge bg-primary me-2">{{ department.course_count }} Courses</span>
+                        <span class="badge bg-success">{{ department.student_count }} Students</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('delete_department', id=department.id) }}" method="post">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i> Delete Department
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .dept-icon {
+        width: 50px;
+        height: 50px;
+        background-color: #343a40;
+        text-align: center;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .dept-icon i {
+        color: #fff;
+    }
+
+    .badge {
+        font-size: 0.875rem;
+    }
+
+    .accordion-button:not(.collapsed) {
+        color: white;
+        background-color: #2c3136;
+    }
+
+    .accordion-button:focus {
+        box-shadow: none;
+        border-color: rgba(0,0,0,.125);
+    }
+
+    .accordion-item {
+        border-radius: 0.375rem;
+        overflow: hidden;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const createNewCheckbox = document.getElementById('createNewInstructor');
+        const newInstructorFields = document.getElementById('newInstructorFields');
+        const instructorSelect = document.querySelector('select[name="instructor_id"]');
+
+        createNewCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                newInstructorFields.style.display = 'block';
+                if (instructorSelect) {
+                    instructorSelect.disabled = true;
+                    instructorSelect.required = false;
+                }
+                document.getElementById('instructor_name').required = true;
+                document.getElementById('instructor_email').required = true;
+            } else {
+                newInstructorFields.style.display = 'none';
+                if (instructorSelect) {
+                    instructorSelect.disabled = false;
+                    instructorSelect.required = true;
+                }
+                document.getElementById('instructor_name').required = false;
+                document.getElementById('instructor_email').required = false;
+            }
+        });
+    });
+</script>
+
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}
