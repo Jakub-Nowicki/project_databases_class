@@ -52,9 +52,6 @@ def add_course():
     conn = get_db_connection()
     try:
         if request.method == 'POST':
-            # Print form data to diagnose issues
-            print("Form data received:", request.form)
-
             # Get form data
             course_name = request.form['course_name']
             credits = request.form['credits']
@@ -67,17 +64,17 @@ def add_course():
             if not instructor_id:
                 instructor_id = None
 
-            print(f"Processing course: {course_name}, dept: {department_id}, instructor: {instructor_id}")
-
             cur = conn.cursor()
 
             # Check if course ID already exists (if provided)
             if course_id:
                 cur.execute("SELECT COUNT(*) FROM courses WHERE course_id = %s", (course_id,))
                 if cur.fetchone()[0] > 0:
-                    print("Course ID already exists")
+                    # Get departments for dropdown
                     cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
                     departments = cur.fetchall()
+
+                    # Get instructors for dropdown
                     cur.execute("""
                         SELECT i.instructor_id, i.name, i.email, d.department_name 
                         FROM instructors i 
@@ -93,15 +90,12 @@ def add_course():
                                            instructors=instructors)
 
                 # Insert with provided ID
-                print(f"Inserting course with ID: {course_id}")
                 cur.execute("""
                     INSERT INTO courses (course_id, course_name, credits, department_id, instructor_id)
                     VALUES (%s, %s, %s, %s, %s)
                 """, (course_id, course_name, credits, department_id, instructor_id))
             else:
-                # Auto-generate ID
-                print("Auto-generating course ID")
-                # Find the smallest available ID (reuse deleted IDs)
+                # Find the smallest available ID (this will reuse deleted IDs)
                 cur.execute("""
                     SELECT MIN(t.course_id + 1) AS next_id 
                     FROM courses t 
@@ -120,8 +114,6 @@ def add_course():
                 if next_id is None:
                     next_id = 1  # Fallback if query returns None
 
-                print(f"Using next available ID: {next_id}")
-
                 # Insert with generated ID
                 cur.execute("""
                     INSERT INTO courses (course_id, course_name, credits, department_id, instructor_id)
@@ -131,26 +123,29 @@ def add_course():
 
             # Add semester enrollment if specified
             if semester:
-                print(f"Adding semester offering: {semester}")
                 try:
+                    # Check if your enrollments table allows NULL student_id
+                    # If not, you might need to use a different table or approach
                     cur.execute("""
                         INSERT INTO enrollments (course_id, student_id, semester)
                         VALUES (%s, NULL, %s)
                     """, (course_id, semester))
                 except Exception as e:
-                    print(f"Error adding semester: {str(e)}")
                     # If this fails, we'll still keep the course but log the error
-                    print("Failed to add semester, but course was created")
+                    print(f"Warning: Could not add semester offering: {str(e)}")
 
             conn.commit()
-            print("Course added successfully")
             flash("Course added successfully!", "success")
             return redirect(url_for('edit_course', id=course_id))
 
         # GET request - show form
         cur = conn.cursor()
+
+        # Get departments for dropdown - only existing departments
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
+
+        # Get instructors for dropdown
         cur.execute("""
             SELECT i.instructor_id, i.name, i.email, d.department_name 
             FROM instructors i 
@@ -163,8 +158,6 @@ def add_course():
     except Exception as e:
         conn.rollback()
         print(f"Error in add_course: {str(e)}")
-        import traceback
-        traceback.print_exc()
         flash(f"Error adding course: {str(e)}", "danger")
         return redirect(url_for('manage_courses'))
     finally:
@@ -381,13 +374,13 @@ def update_course(id):
 
                 # If no enrollments exist for this semester, create a placeholder enrollment
                 if cur.fetchone()[0] == 0:
-                    cur.execute("""
-                        INSERT INTO course_offerings (course_id, semester)
-                        VALUES (%s, %s)
-                    """, (id, semester))
-
-        # Semesters to remove (not implemented, as it would require deleting student enrollments)
-        # This is usually handled through a more complex process
+                    try:
+                        cur.execute("""
+                            INSERT INTO enrollments (course_id, student_id, semester)
+                            VALUES (%s, NULL, %s)
+                        """, (id, semester))
+                    except Exception as e:
+                        print(f"Warning: Could not add semester offering: {str(e)}")
 
         conn.commit()
         flash("Course updated successfully", "success")
@@ -398,7 +391,6 @@ def update_course(id):
         return redirect(url_for('edit_course', id=id))
     finally:
         release_db_connection(conn)
-
 
 @app.route('/courses/delete/<int:id>', methods=['POST'])
 def delete_course(id):
