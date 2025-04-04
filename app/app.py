@@ -52,15 +52,22 @@ def add_course():
     conn = get_db_connection()
     try:
         if request.method == 'POST':
+            # Print form data to diagnose issues
+            print("Form data received:", request.form)
+
+            # Get form data
             course_name = request.form['course_name']
             credits = request.form['credits']
             department_id = request.form['department_id']
-            instructor_id = request.form.get('instructor_id', '')
-            semester = request.form.get('semester', '')
-            course_id = request.form.get('course_id', '').strip()
+            instructor_id = request.form.get('instructor_id', '')  # Optional
+            semester = request.form.get('semester', '')  # Optional
+            course_id = request.form.get('course_id', '').strip()  # Optional
 
-            if not instructor_id:  # Convert empty string to None for database
+            # Convert empty strings to None for database
+            if not instructor_id:
                 instructor_id = None
+
+            print(f"Processing course: {course_name}, dept: {department_id}, instructor: {instructor_id}")
 
             cur = conn.cursor()
 
@@ -68,10 +75,15 @@ def add_course():
             if course_id:
                 cur.execute("SELECT COUNT(*) FROM courses WHERE course_id = %s", (course_id,))
                 if cur.fetchone()[0] > 0:
+                    print("Course ID already exists")
                     cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
                     departments = cur.fetchall()
-                    cur.execute(
-                        "SELECT instructor_id, name, email, department_name FROM instructors i JOIN departments d ON i.department_id = d.department_id ORDER BY name")
+                    cur.execute("""
+                        SELECT i.instructor_id, i.name, i.email, d.department_name 
+                        FROM instructors i 
+                        JOIN departments d ON i.department_id = d.department_id 
+                        ORDER BY i.name
+                    """)
                     instructors = cur.fetchall()
                     cur.close()
                     return render_template('add_course.html',
@@ -81,27 +93,57 @@ def add_course():
                                            instructors=instructors)
 
                 # Insert with provided ID
+                print(f"Inserting course with ID: {course_id}")
                 cur.execute("""
                     INSERT INTO courses (course_id, course_name, credits, department_id, instructor_id)
                     VALUES (%s, %s, %s, %s, %s)
                 """, (course_id, course_name, credits, department_id, instructor_id))
             else:
                 # Auto-generate ID
+                print("Auto-generating course ID")
+                # Find the smallest available ID (reuse deleted IDs)
                 cur.execute("""
-                    INSERT INTO courses (course_name, credits, department_id, instructor_id)
-                    VALUES (%s, %s, %s, %s)
-                    RETURNING course_id
-                """, (course_name, credits, department_id, instructor_id))
-                course_id = cur.fetchone()[0]
+                    SELECT MIN(t.course_id + 1) AS next_id 
+                    FROM courses t 
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM courses t2 
+                        WHERE t2.course_id = t.course_id + 1
+                    )
+                    UNION
+                    SELECT 1
+                    WHERE NOT EXISTS (SELECT 1 FROM courses WHERE course_id = 1)
+                    ORDER BY next_id
+                    LIMIT 1
+                """)
+                next_id = cur.fetchone()[0]
+
+                if next_id is None:
+                    next_id = 1  # Fallback if query returns None
+
+                print(f"Using next available ID: {next_id}")
+
+                # Insert with generated ID
+                cur.execute("""
+                    INSERT INTO courses (course_id, course_name, credits, department_id, instructor_id)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (next_id, course_name, credits, department_id, instructor_id))
+                course_id = next_id
 
             # Add semester enrollment if specified
             if semester:
-                cur.execute("""
-                    INSERT INTO course_offerings (course_id, semester)
-                    VALUES (%s, %s)
-                """, (course_id, semester))
+                print(f"Adding semester offering: {semester}")
+                try:
+                    cur.execute("""
+                        INSERT INTO enrollments (course_id, student_id, semester)
+                        VALUES (%s, NULL, %s)
+                    """, (course_id, semester))
+                except Exception as e:
+                    print(f"Error adding semester: {str(e)}")
+                    # If this fails, we'll still keep the course but log the error
+                    print("Failed to add semester, but course was created")
 
             conn.commit()
+            print("Course added successfully")
             flash("Course added successfully!", "success")
             return redirect(url_for('edit_course', id=course_id))
 
@@ -120,6 +162,9 @@ def add_course():
         return render_template('add_course.html', departments=departments, instructors=instructors)
     except Exception as e:
         conn.rollback()
+        print(f"Error in add_course: {str(e)}")
+        import traceback
+        traceback.print_exc()
         flash(f"Error adding course: {str(e)}", "danger")
         return redirect(url_for('manage_courses'))
     finally:
@@ -744,6 +789,7 @@ def delete_enrollment(enrollment_id):
     finally:
         release_db_connection(conn)
 
+
 @app.route('/students/add', methods=['GET', 'POST'])
 def add_student():
     conn = get_db_connection()
@@ -764,7 +810,7 @@ def add_student():
                 cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
                 departments = cur.fetchall()
                 cur.close()
-                return render_template('add_student.html',  # This file exists in your uploads
+                return render_template('add_student.html',
                                        message="Email already exists in the database.",
                                        message_type="danger",
                                        departments=departments)
@@ -777,7 +823,7 @@ def add_student():
                     cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
                     departments = cur.fetchall()
                     cur.close()
-                    return render_template('add_student.html',  # This file exists in your uploads
+                    return render_template('add_student.html',
                                            message="Student ID already exists. Please use a different ID or leave blank for auto-generation.",
                                            message_type="danger",
                                            departments=departments)
@@ -788,13 +834,28 @@ def add_student():
                     VALUES (%s, %s, %s, %s, %s, %s)
                 """, (student_id, name, age, email, major, department_id))
             else:
-                # Auto-generate ID
+                # Find the smallest available ID (this will reuse deleted IDs)
                 cur.execute("""
-                    INSERT INTO students (name, age, email, major, department_id)
-                    VALUES (%s, %s, %s, %s, %s)
-                    RETURNING student_id
-                """, (name, age, email, major, department_id))
-                student_id = cur.fetchone()[0]
+                    SELECT MIN(t.student_id + 1) AS next_id 
+                    FROM students t 
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM students t2 
+                        WHERE t2.student_id = t.student_id + 1
+                    )
+                    UNION
+                    SELECT 1
+                    WHERE NOT EXISTS (SELECT 1 FROM students WHERE student_id = 1)
+                    ORDER BY next_id
+                    LIMIT 1
+                """)
+                next_id = cur.fetchone()[0]
+
+                # Insert student with the next available ID
+                cur.execute("""
+                    INSERT INTO students (student_id, name, age, email, major, department_id)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (next_id, name, age, email, major, department_id))
+                student_id = next_id
 
             conn.commit()
             flash("Student added successfully!", "success")
@@ -805,7 +866,7 @@ def add_student():
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
         cur.close()
-        return render_template('add_student.html', departments=departments)  # This file exists in your uploads
+        return render_template('add_student.html', departments=departments)
     except Exception as e:
         conn.rollback()
         flash(f"Error adding student: {str(e)}", "danger")
@@ -889,19 +950,60 @@ def get_all_departments():
     finally:
         release_db_connection(conn)
 
+
 @app.route('/students')
 def list_students():
     conn = get_db_connection()
     try:
+        search_query = request.args.get('search', '')
+        page = int(request.args.get('page', 1))
+        per_page = 30  # Students per page
+
         cur = conn.cursor()
-        cur.execute("""
+
+        # Base query
+        query = """
             SELECT student_id, name
             FROM students
-            ORDER BY student_id
-        """)
+            WHERE 1=1
+        """
+        params = []
+
+        # Add search condition if search query exists
+        if search_query:
+            query += " AND (student_id::text ILIKE %s OR name ILIKE %s)"
+            search_pattern = f"%{search_query}%"
+            params.extend([search_pattern, search_pattern])
+
+        # Add ordering
+        query += " ORDER BY student_id"
+
+        # Get total count for pagination
+        count_query = f"SELECT COUNT(*) FROM ({query}) AS count_query"
+        cur.execute(count_query, params)
+        total_count = cur.fetchone()[0]
+
+        # Calculate pagination
+        total_pages = (total_count + per_page - 1) // per_page
+        offset = (page - 1) * per_page
+
+        # Add pagination to the query
+        query += " LIMIT %s OFFSET %s"
+        params.extend([per_page, offset])
+
+        # Execute final query
+        cur.execute(query, params)
         students = cur.fetchall()
+
         cur.close()
-        return render_template('students.html', students=students)
+        return render_template(
+            'students.html',
+            students=students,
+            search_query=search_query,
+            page=page,
+            total_pages=total_pages,
+            total_count=total_count
+        )
     finally:
         release_db_connection(conn)
 
