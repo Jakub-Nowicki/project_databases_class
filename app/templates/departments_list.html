@@ -9,7 +9,7 @@
             <div class="card shadow-lg border-0 rounded-lg mb-4">
                 <div class="card-header bg-dark text-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="/view" class="btn btn-outline-light btn-sm">
+                        <a href="{{ url_for('view') }}" class="btn btn-outline-light btn-sm">
                             <i class="fas fa-arrow-left"></i> Back
                         </a>
                         <h2 class="mb-0 text-center flex-grow-1">Academic Departments</h2>
@@ -36,7 +36,7 @@
                                     <p class="mb-3"><strong>Chair:</strong> {{ department[2] }}</p>
 
                                     <div class="mt-auto text-center">
-                                        <a href="{{ url_for('department_detail', id=department[0]) }}" class="btn btn-dark w-100">
+                                        <a href="{{ url_for('departments.department_detail', id=department[0]) }}" class="btn btn-dark w-100">
                                             <i class="fas fa-university me-2"></i> View Department
                                         </a>
                                     </div>

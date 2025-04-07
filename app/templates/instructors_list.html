@@ -9,7 +9,7 @@
             <div class="card shadow-lg border-0 rounded-lg mb-4">
                 <div class="card-header bg-dark text-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="/view" class="btn btn-outline-light btn-sm">
+                        <a href="{{ url_for('view') }}" class="btn btn-outline-light btn-sm">
                             <i class="fas fa-arrow-left"></i> Back
                         </a>
                         <h2 class="mb-0 text-center flex-grow-1">Instructors Directory</h2>
@@ -34,7 +34,7 @@
                                     <p class="mb-3"><strong>Email:</strong> <span class="text-break">{{ instructor[2] }}</span></p>
 
                                     <div class="mt-auto text-center">
-                                        <a href="{{ url_for('instructor_detail', id=instructor[0]) }}" class="btn btn-dark w-100">
+                                        <a href="{{ url_for('instructors.instructor_detail', id=instructor[0]) }}" class="btn btn-dark w-100">
                                             <i class="fas fa-chalkboard-teacher me-2"></i> View Courses
                                         </a>
                                     </div>

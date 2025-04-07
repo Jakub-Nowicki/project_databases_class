@@ -9,7 +9,7 @@
             <div class="card shadow-lg border-0 rounded-lg mb-4">
                 <div class="card-header bg-dark text-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="/departments/manage" class="btn btn-outline-light btn-sm">
+                        <a href="{{ url_for('departments.manage_departments') }}" class="btn btn-outline-light btn-sm">
                             <i class="fas fa-arrow-left"></i> Back
                         </a>
                         <h2 class="mb-0 text-center flex-grow-1">Add New Department</h2>
@@ -24,8 +24,8 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                     {% endif %}
-                    
-                    <form method="post" action="{{ url_for('add_department') }}">
+
+                    <form method="post" action="{{ url_for('departments.add_department') }}">
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <div class="mb-3">

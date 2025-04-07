@@ -9,9 +9,9 @@
             <div class="card shadow-lg border-0 rounded-lg mb-4">
                 <div class="card-header bg-dark text-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="/courses/manage" class="btn btn-outline-light btn-sm">
-                            <i class="fas fa-arrow-left"></i> Back
-                        </a>
+                        <a href="{{ url_for('courses.manage_courses') }}" class="btn btn-outline-light btn-sm">
+    <i class="fas fa-arrow-left"></i> Back
+</a>
                         <h2 class="mb-0 text-center flex-grow-1">Edit Courses</h2>
                         <div style="width: 70px;"></div>
                     </div>
@@ -26,7 +26,7 @@
                     {% endif %}
                     
                     <div class="mb-4">
-                        <form method="get" action="{{ url_for('edit_courses') }}" class="row g-3">
+                        <form method="get" action="{{ url_for('courses.edit_courses') }}" class="row g-3">
                             <div class="col-md-6">
                                 <div class="input-group">
                                     <input type="text" class="form-control" placeholder="Search by course ID or name" 
@@ -47,7 +47,7 @@
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <a href="{{ url_for('edit_courses') }}" class="btn btn-outline-secondary w-100">
+                                <a href="{{ url_for('courses.edit_courses') }}" class="btn btn-outline-secondary w-100">
                                     Reset
                                 </a>
                             </div>
@@ -76,7 +76,7 @@
                                         <td>{{ course[2] }}</td>
                                         <td>{{ course[6] or "Unassigned" }}</td>
                                         <td class="text-end">
-                                            <a href="{{ url_for('edit_course', id=course[0]) }}" class="btn btn-primary btn-sm">
+                                            <a href="{{ url_for('courses.edit_course', id=course[0]) }}" class="btn btn-primary btn-sm">
                                                 <i class="fas fa-edit"></i> Edit
                                             </a>
                                             <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" 
@@ -108,7 +108,7 @@
                                                         </div>
                                                         <div class="modal-footer">
                                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                            <form action="{{ url_for('delete_course', id=course[0]) }}" method="post">
+                                                            <form action="{{ url_for('courses.delete_course', id=course[0]) }}" method="post">
                                                                 <button type="submit" class="btn btn-danger">
                                                                     <i class="fas fa-trash me-1"></i> Delete Course
                                                                 </button>
@@ -149,7 +149,7 @@
                             <ul class="pagination mb-0">
                                 {% if page > 1 %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('edit_courses', page=page-1, search=search_query, department=department_filter) }}">
+                                    <a class="page-link" href="{{ url_for('courses.edit_courses', page=page-1, search=search_query, department=department_filter) }}">
                                         Previous
                                     </a>
                                 </li>
@@ -165,7 +165,7 @@
                                 
                                 {% if start_page > 1 %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('edit_courses', page=1, search=search_query, department=department_filter) }}">1</a>
+                                    <a class="page-link" href="{{ url_for('courses.edit_courses', page=1, search=search_query, department=department_filter) }}">1</a>
                                 </li>
                                 {% if start_page > 2 %}
                                 <li class="page-item disabled">
@@ -176,7 +176,7 @@
                                 
                                 {% for p in range(start_page, end_page + 1) %}
                                 <li class="page-item {% if p == page %}active{% endif %}">
-                                    <a class="page-link" href="{{ url_for('edit_courses', page=p, search=search_query, department=department_filter) }}">
+                                    <a class="page-link" href="{{ url_for('courses.edit_courses', page=p, search=search_query, department=department_filter) }}">
                                         {{ p }}
                                     </a>
                                 </li>
@@ -189,7 +189,7 @@
                                 </li>
                                 {% endif %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('edit_courses', page=total_pages, search=search_query, department=department_filter) }}">
+                                    <a class="page-link" href="{{ url_for('courses.edit_courses', page=total_pages, search=search_query, department=department_filter) }}">
                                         {{ total_pages }}
                                     </a>
                                 </li>
@@ -197,7 +197,7 @@
                                 
                                 {% if page < total_pages %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('edit_courses', page=page+1, search=search_query, department=department_filter) }}">
+                                    <a class="page-link" href="{{ url_for('courses.edit_courses', page=page+1, search=search_query, department=department_filter) }}">
                                         Next
                                     </a>
                                 </li>

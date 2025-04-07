@@ -10,11 +10,11 @@
                 <div class="card-header bg-dark text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         {% if instructor[4] %}
-                            <a href="{{ url_for('department_detail', id=instructor[4]) }}" class="btn btn-outline-light btn-sm">
+                            <a href="{{ url_for('departments.department_detail', id=instructor[4]) }}" class="btn btn-outline-light btn-sm">
                                 <i class="fas fa-arrow-left"></i> Back
                             </a>
                         {% else %}
-                            <a href="{{ url_for('list_departments') }}" class="btn btn-outline-light btn-sm">
+                            <a href="{{ url_for('departments.list_departments') }}" class="btn btn-outline-light btn-sm">
                                 <i class="fas fa-arrow-left"></i> Back
                             </a>
                         {% endif %}

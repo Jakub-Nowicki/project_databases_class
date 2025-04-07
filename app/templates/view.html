@@ -9,7 +9,7 @@
             <div class="card shadow-lg border-0 rounded-lg mb-4">
                 <div class="card-header bg-dark text-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="/" class="btn btn-outline-light btn-sm">
+                       <a href="{{ url_for('index') }}" class="btn btn-outline-light btn-sm">
                             <i class="fas fa-arrow-left"></i> Back
                         </a>
                         <h2 class="mb-0 text-center flex-grow-1">University Database</h2>
@@ -30,7 +30,7 @@
                                             <h3>Students</h3>
                                             <p class="text-muted flex-grow-1">Browse student records and academic profiles</p>
                                             <div class="mt-auto">
-                                                <a href="/students" class="btn btn-dark w-100">View Students</a>
+                                                <a href="{{ url_for('students.list_students') }}" class="btn btn-dark w-100">View Students</a>
                                             </div>
                                         </div>
                                     </div>
@@ -45,7 +45,7 @@
                                             <h3>Courses</h3>
                                             <p class="text-muted flex-grow-1">View course offerings sorted by semester</p>
                                             <div class="mt-auto">
-                                                <a href="/course-offerings" class="btn btn-dark w-100">View Courses</a>
+                                                <a href="{{ url_for('courses.course_offerings') }}" class="btn btn-dark w-100">View Courses</a>
                                             </div>
                                         </div>
                                     </div>
@@ -61,7 +61,7 @@
                                             <h3>Departments</h3>
                                             <p class="text-muted flex-grow-1">View departments, heads, and faculty members</p>
                                             <div class="mt-auto">
-                                                <a href="/departments" class="btn btn-dark w-100">View Departments</a>
+                                                <a href="{{ url_for('departments.list_departments') }}" class="btn btn-dark w-100">View Departments</a>
                                             </div>
                                         </div>
                                     </div>

@@ -9,7 +9,7 @@
             <div class="card shadow-lg border-0 rounded-lg mb-4">
                 <div class="card-header bg-dark text-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="/view" class="btn btn-outline-light btn-sm">
+                        <a href="{{ url_for('view') }}" class="btn btn-outline-light btn-sm">
                             <i class="fas fa-arrow-left"></i> Back
                         </a>
                         <h2 class="mb-0 text-center flex-grow-1">Students Directory</h2>
@@ -20,7 +20,7 @@
                 <div class="card-body bg-light">
                     <!-- Search Form -->
                     <div class="mb-4">
-                        <form method="get" action="{{ url_for('list_students') }}" class="row g-3">
+                        <form method="get" action="{{ url_for('students.list_students') }}" class="row g-3">
                             <div class="col-md-8">
                                 <div class="input-group">
                                     <input type="text" class="form-control" placeholder="Search by student ID or name"
@@ -31,7 +31,7 @@
                                 </div>
                             </div>
                             <div class="col-md-4 text-end">
-                                <a href="{{ url_for('list_students') }}" class="btn btn-outline-secondary">
+                                <a href="{{ url_for('students.list_students') }}" class="btn btn-outline-secondary">
                                     Reset
                                 </a>
                             </div>
@@ -54,7 +54,7 @@
                                         <td>{{ student[0] }}</td>
                                         <td>{{ student[1] }}</td>
                                         <td class="text-end">
-                                            <a href="{{ url_for('student_detail', id=student[0]) }}" class="btn btn-dark btn-sm">
+                                            <a href="{{ url_for('students.student_detail', id=student[0]) }}" class="btn btn-dark btn-sm">
                                                 <i class="fas fa-user-circle me-1"></i> View Details
                                             </a>
                                         </td>
@@ -88,7 +88,7 @@
                             <ul class="pagination mb-0">
                                 {% if page > 1 %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('list_students', page=page-1, search=search_query) }}">
+                                    <a class="page-link" href="{{ url_for('students.list_students', page=page-1, search=search_query) }}">
                                         Previous
                                     </a>
                                 </li>
@@ -104,7 +104,7 @@
 
                                 {% for p in range(start_page, end_page + 1) %}
                                 <li class="page-item {% if p == page %}active{% endif %}">
-                                    <a class="page-link" href="{{ url_for('list_students', page=p, search=search_query) }}">
+                                    <a class="page-link" href="{{ url_for('students.list_students', page=p, search=search_query) }}">
                                         {{ p }}
                                     </a>
                                 </li>
@@ -112,7 +112,7 @@
 
                                 {% if page < total_pages %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('list_students', page=page+1, search=search_query) }}">
+                                    <a class="page-link" href="{{ url_for('students.list_students', page=page+1, search=search_query) }}">
                                         Next
                                     </a>
                                 </li>

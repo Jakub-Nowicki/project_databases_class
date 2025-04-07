@@ -9,7 +9,7 @@
             <div class="card shadow-lg border-0 rounded-lg mb-4">
                 <div class="card-header bg-dark text-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="/" class="btn btn-outline-light btn-sm">
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-light btn-sm">
                             <i class="fas fa-arrow-left"></i> Back
                         </a>
                         <h2 class="mb-0 text-center flex-grow-1">Manage Database</h2>
@@ -30,7 +30,7 @@
                                             <h3>Students</h3>
                                             <p class="text-muted flex-grow-1">Add, edit, or delete student records</p>
                                             <div class="mt-auto">
-                                                <a href="/students/manage" class="btn btn-dark w-100">Manage Students</a>
+                                                <a href="{{ url_for('students.manage_students') }}"class="btn btn-dark w-100">Manage Students</a>
                                             </div>
                                         </div>
                                     </div>
@@ -45,7 +45,7 @@
                                             <h3>Courses</h3>
                                             <p class="text-muted flex-grow-1">Add, edit, or delete course offerings</p>
                                             <div class="mt-auto">
-                                                <a href="/courses/manage" class="btn btn-dark w-100">Manage Courses</a>
+                                                <a href="{{ url_for('courses.manage_courses') }}" class="btn btn-dark w-100">Manage Courses</a>
                                             </div>
                                         </div>
                                     </div>
@@ -61,7 +61,7 @@
                                             <h3>Departments</h3>
                                             <p class="text-muted flex-grow-1">Add, edit, or delete department information</p>
                                             <div class="mt-auto">
-                                                <a href="/departments/manage" class="btn btn-dark w-100">Manage Departments</a>
+                                                <a href="{{ url_for('departments.manage_departments') }}"class="btn btn-dark w-100">Manage Departments</a>
                                             </div>
                                         </div>
                                     </div>

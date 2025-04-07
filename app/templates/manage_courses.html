@@ -9,7 +9,7 @@
             <div class="card shadow-lg border-0 rounded-lg mb-4">
                 <div class="card-header bg-dark text-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="/manage" class="btn btn-outline-light btn-sm">
+                        <a href="{{ url_for('manage') }}" class="btn btn-outline-light btn-sm">
                             <i class="fas fa-arrow-left"></i> Back
                         </a>
                         <h2 class="mb-0 text-center flex-grow-1">Course Management</h2>
@@ -26,7 +26,7 @@
                                     <h3 class="mb-2">Add New Course</h3>
                                     <p class="text-muted text-center mb-3">Create a new course in the database</p>
                                     <div class="mt-auto w-100">
-                                        <a href="/courses/add" class="btn btn-dark w-100">Add Course</a>
+                                        <a href="{{ url_for('courses.add_course') }}" class="btn btn-dark w-100">Add Course</a>
                                     </div>
                                 </div>
                             </div>
@@ -39,7 +39,7 @@
                                     <h3 class="mb-2">Edit Courses</h3>
                                     <p class="text-muted text-center mb-3">Modify or delete existing courses</p>
                                     <div class="mt-auto w-100">
-                                        <a href="/courses/edit" class="btn btn-dark w-100">Edit Courses</a>
+                                        <a href="{{ url_for('courses.edit_courses') }}" class="btn btn-dark w-100">Edit Courses</a>
                                     </div>
                                 </div>
                             </div>

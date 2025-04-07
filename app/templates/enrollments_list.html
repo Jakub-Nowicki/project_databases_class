@@ -75,7 +75,7 @@
                                             </td>
                                             <td>
                                                 {% if enrollment.instructor_name %}
-                                                    <a href="{{ url_for('instructor_detail', id=enrollment.instructor_id) }}" class="text-decoration-none">
+                                                    <a href="{{ url_for('instructors.instructor_detail', id=enrollment.instructor_id) }}" class="text-decoration-none">
                                                         {{ enrollment.instructor_name }}
                                                     </a>
                                                 {% else %}
@@ -89,7 +89,7 @@
                                 </table>
                             </div>
                             <div class="card-footer bg-light d-flex justify-content-end">
-                                <a href="{{ url_for('student_detail', id=student.student_id) }}" class="btn btn-sm btn-primary">
+                                <a href="{{ url_for('students.student_detail', id=student.student_id) }}" class="btn btn-sm btn-primary">
                                     <i class="fas fa-user me-1"></i> Student Profile
                                 </a>
                             </div>

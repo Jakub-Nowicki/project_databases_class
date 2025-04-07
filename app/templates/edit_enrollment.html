@@ -9,7 +9,7 @@
             <div class="card shadow-lg border-0 rounded-lg mb-4">
                 <div class="card-header bg-dark text-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="{{ url_for('edit_enrollments', student_id=enrollment[0]) }}" class="btn btn-outline-light btn-sm">
+                        <a href="{{ url_for('enrollments.edit_enrollments', student_id=enrollment[0]) }}" class="btn btn-outline-light btn-sm">
                             <i class="fas fa-arrow-left"></i> Back
                         </a>
                         <h2 class="mb-0 text-center flex-grow-1">Edit Enrollment</h2>
@@ -46,7 +46,7 @@
                         </div>
                     </div>
                     
-                    <form method="post" action="{{ url_for('update_enrollment', enrollment_id=enrollment_id) }}">
+                    <form method="post" action="{{ url_for('enrollments.update_enrollment', enrollment_id=enrollment_id) }}">
                         <div class="mb-3">
                             <label for="semester" class="form-label">Semester</label>
                             <select class="form-select" id="semester" name="semester" required>
@@ -108,7 +108,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form action="{{ url_for('delete_enrollment', enrollment_id=enrollment_id) }}" method="post">
+                <form action="{{ url_for('enrollments.delete_enrollment', enrollment_id=enrollment_id) }}" method="post">
                     <button type="submit" class="btn btn-danger">
                         <i class="fas fa-trash me-1"></i> Delete Enrollment
                     </button>

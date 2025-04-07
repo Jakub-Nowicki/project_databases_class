@@ -9,7 +9,7 @@
             <div class="card shadow-lg border-0 rounded-lg mb-4">
                 <div class="card-header bg-dark text-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="{{ url_for('list_departments') }}" class="btn btn-outline-light btn-sm">
+                        <a href="{{ url_for('departments.list_departments') }}" class="btn btn-outline-light btn-sm">
                             <i class="fas fa-arrow-left"></i> Back
                         </a>
                         <h2 class="mb-0 text-center flex-grow-1">Department Details</h2>
@@ -60,7 +60,7 @@
                                     {% if department.instructors %}
                                         <div class="list-group">
                                             {% for instructor in department.instructors %}
-                                            <a href="{{ url_for('instructor_detail', id=instructor.id) }}" class="list-group-item list-group-item-action">
+                                            <a href="{{ url_for('instructors.instructor_detail', id=instructor.id) }}" class="list-group-item list-group-item-action">
                                                 <div class="d-flex w-100 justify-content-between align-items-center">
                                                     <div>
                                                         <h6 class="mb-1">{{ instructor.name }}</h6>

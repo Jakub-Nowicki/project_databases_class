@@ -9,7 +9,7 @@
             <div class="card shadow-lg border-0 rounded-lg mb-4">
                 <div class="card-header bg-dark text-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="/manage" class="btn btn-outline-light btn-sm">
+                        <a href="{{ url_for('manage') }}" class="btn btn-outline-light btn-sm">
                             <i class="fas fa-arrow-left"></i> Back
                         </a>
                         <h2 class="mb-0 text-center flex-grow-1">Department Management</h2>
@@ -26,7 +26,7 @@
                                     <h3 class="mb-2">Add New Department</h3>
                                     <p class="text-muted text-center mb-3">Create a new academic department</p>
                                     <div class="mt-auto w-100">
-                                        <a href="/departments/add" class="btn btn-dark w-100">Add Department</a>
+                                       <a href="{{ url_for('departments.add_department') }}" class="btn btn-dark w-100">Add Department</a>
                                     </div>
                                 </div>
                             </div>
@@ -39,7 +39,7 @@
                                     <h3 class="mb-2">Edit Departments</h3>
                                     <p class="text-muted text-center mb-3">Modify or delete existing departments</p>
                                     <div class="mt-auto w-100">
-                                        <a href="/departments/edit" class="btn btn-dark w-100">Edit Departments</a>
+                                        <a href="{{ url_for('departments.edit_departments') }}"class="btn btn-dark w-100">Edit Departments</a>
                                     </div>
                                 </div>
                             </div>
