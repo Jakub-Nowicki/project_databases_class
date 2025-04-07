@@ -18,6 +18,26 @@
                 </div>
 
                 <div class="card-body bg-light">
+                    <!-- Search Form -->
+                    <div class="mb-4">
+                        <form method="get" action="{{ url_for('course_offerings') }}" class="row g-3">
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="Search by course ID or name"
+                                           name="search" value="{{ search_query if search_query else '' }}">
+                                    <button class="btn btn-dark" type="submit">
+                                        <i class="fas fa-search"></i> Search
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <a href="{{ url_for('course_offerings') }}" class="btn btn-outline-secondary">
+                                    Reset
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+
                     <div class="mb-4">
                         <h3 class="border-bottom border-dark pb-2 mb-3">Current Semester: Fall 2025</h3>
 
@@ -62,13 +82,13 @@
                                             <tbody>
                                 {% endif %}
 
-<tr onclick="window.location='{{ url_for('course_detail', id=course.course_id) }}';" style="cursor: pointer;">
-    <td>{{ course.course_id }}</td>
-    <td>{{ course.course_name }}</td>
-    <td>{{ course.credits }}</td>
-    <td>{{ course.instructor_name or "Not Assigned" }}</td>
-    <td><span class="badge bg-dark">{{ course.enrolled_count }}</span></td>
-</tr>
+                                <tr onclick="window.location='{{ url_for('course_detail', id=course.course_id) }}';" style="cursor: pointer;">
+                                    <td>{{ course.course_id }}</td>
+                                    <td>{{ course.course_name }}</td>
+                                    <td>{{ course.credits }}</td>
+                                    <td>{{ course.instructor_name or "Not Assigned" }}</td>
+                                    <td><span class="badge bg-dark">{{ course.enrolled_count }}</span></td>
+                                </tr>
                             {% endfor %}
 
                             {% if current_courses %}
@@ -77,6 +97,14 @@
                                 </div>
                             </div>
                         </div>
+                            {% elif search_query %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i> No courses found matching "{{ search_query }}".
+                                </div>
+                            {% else %}
+                                <div class="alert alert-secondary">
+                                    <i class="fas fa-info-circle me-2"></i> No courses available for the current semester.
+                                </div>
                             {% endif %}
                         </div>
                     </div>

@@ -1364,13 +1364,17 @@ def department_detail(id):
     finally:
         release_db_connection(conn)
 
+
 @app.route('/course-offerings')
 def course_offerings():
     conn = get_db_connection()
     try:
+        search_query = request.args.get('search', '')
+
         cur = conn.cursor()
 
-        cur.execute("""
+        # Base query
+        query = """
             WITH enrollment_counts AS (
                 SELECT course_id, COUNT(*) as enrolled_count
                 FROM enrollments
@@ -1383,8 +1387,23 @@ def course_offerings():
             LEFT JOIN departments d ON c.department_id = d.department_id
             LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
             LEFT JOIN enrollment_counts e ON c.course_id = e.course_id
-            ORDER BY d.department_name, c.course_id
-        """)
+            WHERE 1=1
+        """
+        params = []
+
+        # Add search condition if search query exists
+        if search_query:
+            query += " AND (c.course_id::text = %s OR c.course_name ILIKE %s)"
+            # For course ID, we want exact matches only
+            # For course name, we want partial matches
+            params.extend([search_query, f"%{search_query}%"])
+
+        # Add ordering
+        query += " ORDER BY d.department_name, c.course_id"
+
+        # Execute query
+        cur.execute(query, params)
+
         current_courses = []
         for row in cur.fetchall():
             current_courses.append({
@@ -1396,59 +1415,62 @@ def course_offerings():
                 'enrolled_count': row[5]
             })
 
-        cur.execute("""
-            WITH distinct_semesters AS (
-                SELECT DISTINCT course_id, semester
-                FROM enrollments
-                WHERE semester != 'Fall 2025'
-                ORDER BY semester
-            )
-            SELECT c.course_id, c.course_name, c.credits, d.department_name, 
-                   i.name as instructor_name, ds.semester
-            FROM distinct_semesters ds
-            JOIN courses c ON ds.course_id = c.course_id
-            LEFT JOIN departments d ON c.department_id = d.department_id
-            LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
-            ORDER BY ds.semester DESC, d.department_name, c.course_id
-        """)
-
+        # We skip the historical courses query when searching to keep it focused
         historical_courses = {}
-        semester_to_year = {
-            'Fall 2023': '2023-2024',
-            'Winter 2024': '2023-2024',
-            'Spring 2024': '2023-2024',
-            'Fall 2024': '2024-2025',
-            'Winter 2025': '2024-2025',
-            'Spring 2025': '2024-2025'
-        }
+        if not search_query:
+            cur.execute("""
+                WITH distinct_semesters AS (
+                    SELECT DISTINCT course_id, semester
+                    FROM enrollments
+                    WHERE semester != 'Fall 2025'
+                    ORDER BY semester
+                )
+                SELECT c.course_id, c.course_name, c.credits, d.department_name, 
+                       i.name as instructor_name, ds.semester
+                FROM distinct_semesters ds
+                JOIN courses c ON ds.course_id = c.course_id
+                LEFT JOIN departments d ON c.department_id = d.department_id
+                LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
+                ORDER BY ds.semester DESC, d.department_name, c.course_id
+            """)
 
-        for row in cur.fetchall():
-            course_info = {
-                'course_id': row[0],
-                'course_name': row[1],
-                'credits': row[2],
-                'department_name': row[3],
-                'instructor_name': row[4]
+            semester_to_year = {
+                'Fall 2023': '2023-2024',
+                'Winter 2024': '2023-2024',
+                'Spring 2024': '2023-2024',
+                'Fall 2024': '2024-2025',
+                'Winter 2025': '2024-2025',
+                'Spring 2025': '2024-2025'
             }
 
-            semester = row[5]
-            academic_year = semester_to_year.get(semester)
+            for row in cur.fetchall():
+                course_info = {
+                    'course_id': row[0],
+                    'course_name': row[1],
+                    'credits': row[2],
+                    'department_name': row[3],
+                    'instructor_name': row[4]
+                }
 
-            if academic_year not in historical_courses:
-                historical_courses[academic_year] = {}
+                semester = row[5]
+                academic_year = semester_to_year.get(semester)
 
-            if semester not in historical_courses[academic_year]:
-                historical_courses[academic_year][semester] = []
+                if academic_year not in historical_courses:
+                    historical_courses[academic_year] = {}
 
-            historical_courses[academic_year][semester].append(course_info)
+                if semester not in historical_courses[academic_year]:
+                    historical_courses[academic_year][semester] = []
 
-        historical_courses = dict(sorted(historical_courses.items(), key=lambda item: item[0], reverse=True))
+                historical_courses[academic_year][semester].append(course_info)
+
+            historical_courses = dict(sorted(historical_courses.items(), key=lambda item: item[0], reverse=True))
 
         cur.close()
         return render_template(
             'course_offerings.html',
             current_courses=current_courses,
-            historical_courses=historical_courses
+            historical_courses=historical_courses,
+            search_query=search_query
         )
     finally:
         release_db_connection(conn)
