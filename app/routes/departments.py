@@ -561,3 +561,53 @@ def remove_instructor_from_department(dept_id, instructor_id):
         return redirect(url_for('departments.edit_department', id=dept_id))
     finally:
         release_db_connection(conn)
+
+@departments_bp.route('/majors')
+def list_majors():
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Query to get majors grouped by department
+        cur.execute("""
+            SELECT d.department_id, d.department_name, s.major, COUNT(*) as student_count
+            FROM students s
+            JOIN departments d ON s.department_id = d.department_id
+            GROUP BY d.department_id, d.department_name, s.major
+            ORDER BY d.department_name, s.major
+        """)
+
+        # Process the results to group by department
+        departments_majors = {}
+        for row in cur.fetchall():
+            dept_id = row[0]
+            dept_name = row[1]
+            major = row[2]
+            count = row[3]
+
+            if dept_id not in departments_majors:
+                departments_majors[dept_id] = {
+                    'name': dept_name,
+                    'majors': []
+                }
+
+            departments_majors[dept_id]['majors'].append({
+                'name': major,
+                'student_count': count
+            })
+
+        # Convert to a sorted list for easier template rendering
+        departments_list = []
+        for dept_id, dept_data in departments_majors.items():
+            departments_list.append({
+                'id': dept_id,
+                'name': dept_data['name'],
+                'majors': sorted(dept_data['majors'], key=lambda x: x['name'])
+            })
+
+        departments_list.sort(key=lambda x: x['name'])
+
+        cur.close()
+        return render_template('department_majors.html', departments=departments_list)
+    finally:
+        release_db_connection(conn)
