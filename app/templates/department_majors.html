@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Majors by Department{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0 rounded-lg mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('departments.list_departments') }}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                        <h2 class="mb-0 text-center flex-grow-1">Majors by Department</h2>
+                        <div style="width: 70px;"></div>
+                    </div>
+                </div>
+
+                <div class="card-body bg-light">
+                    <div class="accordion" id="departmentsAccordion">
+                        {% for department in departments %}
+                        <div class="accordion-item mb-3 shadow-sm">
+                            <h2 class="accordion-header" id="heading{{ department.id }}">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                        data-bs-target="#collapse{{ department.id }}" 
+                                        aria-expanded="false" aria-controls="collapse{{ department.id }}">
+                                    <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                        <div>
+                                            <strong>{{ department.name }}</strong>
+                                        </div>
+                                        <div>
+                                            <span class="badge bg-primary rounded-pill">{{ department.majors|length }} majors</span>
+                                        </div>
+                                    </div>
+                                </button>
+                            </h2>
+                            
+                            <div id="collapse{{ department.id }}" class="accordion-collapse collapse" 
+                                 aria-labelledby="heading{{ department.id }}" data-bs-parent="#departmentsAccordion">
+                                <div class="accordion-body p-0">
+                                    <div class="list-group list-group-flush">
+                                        {% for major in department.majors %}
+                                        <div class="list-group-item">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 class="mb-0">{{ major.name }}</h6>
+                                                </div>
+                                                <div>
+                                                    <span class="badge bg-secondary rounded-pill">{{ major.student_count }} students</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .accordion-button:not(.collapsed) {
+        background-color: #f8f9fa;
+        color: #212529;
+    }
+    
+    .accordion-button:focus {
+        box-shadow: none;
+        border-color: rgba(0,0,0,.125);
+    }
+    
+    .accordion-item {
+        border-radius: 0.375rem;
+        overflow: hidden;
+    }
+</style>
+
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}
