@@ -277,26 +277,40 @@ def add_student():
             # Check if email already exists
             cur.execute("SELECT COUNT(*) FROM students WHERE email = %s", (email,))
             if cur.fetchone()[0] > 0:
+                # Get departments for dropdown
                 cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
                 departments = cur.fetchall()
+
+                # Get existing majors for dropdown
+                cur.execute("SELECT DISTINCT major FROM students ORDER BY major")
+                majors = [row[0] for row in cur.fetchall()]
+
                 cur.close()
                 return render_template('add_student.html',
                                        message="Email already exists in the database.",
                                        message_type="danger",
-                                       departments=departments)
+                                       departments=departments,
+                                       majors=majors)
 
             # Insert new student
             if student_id:
                 # Check if ID already exists
                 cur.execute("SELECT COUNT(*) FROM students WHERE student_id = %s", (student_id,))
                 if cur.fetchone()[0] > 0:
+                    # Get departments for dropdown
                     cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
                     departments = cur.fetchall()
+
+                    # Get existing majors for dropdown
+                    cur.execute("SELECT DISTINCT major FROM students ORDER BY major")
+                    majors = [row[0] for row in cur.fetchall()]
+
                     cur.close()
                     return render_template('add_student.html',
                                            message="Student ID already exists. Please use a different ID or leave blank for auto-generation.",
                                            message_type="danger",
-                                           departments=departments)
+                                           departments=departments,
+                                           majors=majors)
 
                 # Insert with provided ID
                 cur.execute("""
@@ -333,10 +347,17 @@ def add_student():
 
         # GET request - show form
         cur = conn.cursor()
+
+        # Get departments for dropdown
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
+
+        # Get existing majors for dropdown
+        cur.execute("SELECT DISTINCT major FROM students ORDER BY major")
+        majors = [row[0] for row in cur.fetchall()]
+
         cur.close()
-        return render_template('add_student.html', departments=departments)
+        return render_template('add_student.html', departments=departments, majors=majors)
     except Exception as e:
         conn.rollback()
         flash(f"Error adding student: {str(e)}", "danger")
