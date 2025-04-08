@@ -47,9 +47,26 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="major" class="form-label">Major</label>
-                                    <input type="text" class="form-control" id="major" name="major" required>
+                                    <select class="form-select" id="major" name="major" required>
+                                        <option value="" selected disabled>Select Major</option>
+                                        {% for major in majors %}
+                                        <option value="{{ major }}">{{ major }}</option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
-                                
+
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="newMajorCheck">
+                                        <label class="form-check-label" for="newMajorCheck">
+                                            Add a new major
+                                        </label>
+                                    </div>
+                                    <div id="newMajorField" style="display: none;">
+                                        <input type="text" class="form-control mt-2" id="newMajor" placeholder="Enter new major">
+                                    </div>
+                                </div>
+
                                 <div class="mb-3">
                                     <label for="department" class="form-label">Department</label>
                                     <select class="form-select" id="department" name="department_id" required>
@@ -59,16 +76,16 @@
                                         {% endfor %}
                                     </select>
                                 </div>
-                                
+
                                 <div class="mb-3">
                                     <label for="student_id" class="form-label">Student ID (Optional)</label>
-                                    <input type="text" class="form-control" id="student_id" name="student_id" 
+                                    <input type="text" class="form-control" id="student_id" name="student_id"
                                            placeholder="Leave blank for auto-generated ID">
                                     <small class="form-text text-muted">If left blank, an ID will be automatically assigned.</small>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="text-center mt-4">
                             <button type="submit" class="btn btn-dark btn-lg px-5">
                                 <i class="fas fa-save me-2"></i> Add Student
@@ -80,6 +97,52 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const majorSelect = document.getElementById('major');
+    const newMajorCheck = document.getElementById('newMajorCheck');
+    const newMajorField = document.getElementById('newMajorField');
+    const newMajorInput = document.getElementById('newMajor');
+
+    newMajorCheck.addEventListener('change', function() {
+        if (this.checked) {
+            majorSelect.disabled = true;
+            majorSelect.required = false;
+            newMajorField.style.display = 'block';
+            newMajorInput.required = true;
+
+            // Update the form's major field with the new value when changed
+            newMajorInput.addEventListener('input', function() {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'major';
+                hiddenInput.value = this.value;
+
+                // Remove any existing hidden major input
+                const existingHidden = document.querySelector('input[type="hidden"][name="major"]');
+                if (existingHidden) {
+                    existingHidden.remove();
+                }
+
+                // Add the new hidden input
+                majorSelect.after(hiddenInput);
+            });
+        } else {
+            majorSelect.disabled = false;
+            majorSelect.required = true;
+            newMajorField.style.display = 'none';
+            newMajorInput.required = false;
+
+            // Remove any hidden major input
+            const existingHidden = document.querySelector('input[type="hidden"][name="major"]');
+            if (existingHidden) {
+                existingHidden.remove();
+            }
+        }
+    });
+});
+</script>
 
 <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 {% endblock %}
