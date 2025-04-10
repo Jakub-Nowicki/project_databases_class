@@ -5,10 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Student Management System{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <style>
         body {
-            background-color: #f0f2f5;
+            background-color: #f0f2f5;  /* Light gray background for the main body */
         }
 
         .container {
@@ -19,44 +18,42 @@
         .card {
             border: none;
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-            border-radius: 8px;
-            overflow: hidden;
         }
 
         .card-header {
-            background-color: #343a40;
+            background-color: #343a40;  /* Dark header for cards */
             color: white;
             border-bottom: 0;
         }
 
         .card-body.bg-light {
-            background-color: #f8f9fa;
+            background-color: #f8f9fa;  /* Light background for card bodies */
         }
 
         .table-dark {
-            background-color: #343a40;
+            background-color: #343a40;  /* Dark table headers */
         }
 
         .btn-dark {
-            background-color: #343a40;
+            background-color: #343a40;  /* Dark buttons */
             border-color: #343a40;
         }
 
         .btn-dark:hover {
-            background-color: #23272b;
+            background-color: #23272b;  /* Slightly darker on hover */
             border-color: #1d2124;
         }
 
         .navbar-dark {
-            background-color: #212529 !important;
+            background-color: #212529 !important;  /* Very dark navbar */
         }
 
         .badge.bg-dark {
-            background-color: #343a40 !important;
+            background-color: #343a40 !important;  /* Dark badges */
         }
 
         .accordion-button.bg-dark {
-            background-color: #343a40 !important;
+            background-color: #343a40 !important;  /* Dark accordion buttons */
         }
 
         .nav-tabs .nav-link.active {
@@ -70,29 +67,18 @@
         }
 
         .modal-header.bg-dark {
-            background-color: #343a40 !important;
+            background-color: #343a40 !important;  /* Dark modal headers */
         }
 
         .dept-icon, .avatar-circle {
-            background-color: #343a40 !important;
-        }
-
-        .pagination .page-link {
-            color: #343a40;
-        }
-
-        .pagination .page-item.active .page-link {
-            background-color: #343a40;
-            border-color: #343a40;
+            background-color: #343a40 !important;  /* Dark background for icons */
         }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="fas fa-graduation-cap me-2"></i>Student Management
-            </a>
+
         </div>
     </nav>
 
