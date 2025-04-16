@@ -14,7 +14,6 @@ def add_course():
     conn = get_db_connection()
     try:
         if request.method == 'POST':
-            # Get form data
             course_name = request.form['course_name']
             credits = request.form['credits']
             department_id = request.form['department_id']
@@ -49,13 +48,11 @@ def add_course():
                                            departments=departments,
                                            instructors=instructors)
 
-                # Insert with provided ID
                 cur.execute("""
                     INSERT INTO courses (course_id, course_name, credits, department_id, instructor_id)
                     VALUES (%s, %s, %s, %s, %s)
                 """, (course_id, course_name, credits, department_id, instructor_id))
             else:
-                # Find the smallest available ID (this will reuse deleted IDs)
                 cur.execute("""
                     SELECT MIN(t.course_id + 1) AS next_id 
                     FROM courses t 
@@ -72,40 +69,32 @@ def add_course():
                 next_id = cur.fetchone()[0]
 
                 if next_id is None:
-                    next_id = 1  # Fallback if query returns None
+                    next_id = 1
 
-                # Insert with generated ID
                 cur.execute("""
                     INSERT INTO courses (course_id, course_name, credits, department_id, instructor_id)
                     VALUES (%s, %s, %s, %s, %s)
                 """, (next_id, course_name, credits, department_id, instructor_id))
                 course_id = next_id
 
-            # Add semester enrollment if specified
             if semester:
                 try:
-                    # Check if your enrollments table allows NULL student_id
-                    # If not, you might need to use a different table or approach
                     cur.execute("""
                         INSERT INTO enrollments (course_id, student_id, semester)
                         VALUES (%s, NULL, %s)
                     """, (course_id, semester))
                 except Exception as e:
-                    # If this fails, we'll still keep the course but log the error
                     print(f"Warning: Could not add semester offering: {str(e)}")
 
             conn.commit()
             flash("Course added successfully!", "success")
             return redirect(url_for('courses.edit_course', id=course_id))
 
-        # GET request - show form
         cur = conn.cursor()
 
-        # Get departments for dropdown - only existing departments
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
 
-        # Get instructors for dropdown
         cur.execute("""
             SELECT i.instructor_id, i.name, i.email, d.department_name 
             FROM instructors i 
@@ -131,15 +120,13 @@ def edit_courses():
         search_query = request.args.get('search', '')
         department_filter = request.args.get('department', '')
         page = int(request.args.get('page', 1))
-        per_page = 30  # Number of courses per page
+        per_page = 30
 
         cur = conn.cursor()
 
-        # Get departments for filter dropdown
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
 
-        # Base query
         query = """
             SELECT c.course_id, c.course_name, c.credits, c.department_id, c.instructor_id,
                    d.department_name, i.name as instructor_name
@@ -150,34 +137,27 @@ def edit_courses():
         """
         params = []
 
-        # Add search condition if search query exists
         if search_query:
             query += " AND (c.course_id::text ILIKE %s OR c.course_name ILIKE %s)"
             search_pattern = f"%{search_query}%"
             params.extend([search_pattern, search_pattern])
 
-        # Add department filter if selected
         if department_filter:
             query += " AND c.department_id = %s"
             params.append(department_filter)
 
-        # Add ordering
         query += " ORDER BY c.course_id"
 
-        # Get total count for pagination
         count_query = f"SELECT COUNT(*) FROM ({query}) AS count_query"
         cur.execute(count_query, params)
         total_count = cur.fetchone()[0]
 
-        # Calculate pagination
         total_pages = (total_count + per_page - 1) // per_page
         offset = (page - 1) * per_page
 
-        # Add pagination to the query
         query += " LIMIT %s OFFSET %s"
         params.extend([per_page, offset])
 
-        # Execute final query
         cur.execute(query, params)
         courses = cur.fetchall()
 
@@ -202,7 +182,6 @@ def edit_course(id):
     try:
         cur = conn.cursor()
 
-        # Get course details
         cur.execute("""
             SELECT c.course_id, c.course_name, c.credits, c.department_id, c.instructor_id,
                    d.department_name, i.name as instructor_name
@@ -217,19 +196,16 @@ def edit_course(id):
             flash("Course not found", "danger")
             return redirect(url_for('courses.edit_courses'))
 
-        # Get enrollment count
         cur.execute("""
             SELECT COUNT(*) FROM enrollments WHERE course_id = %s
         """, (id,))
         enrolled_count = cur.fetchone()[0]
 
-        # Get current semester offerings
         cur.execute("""
             SELECT DISTINCT semester FROM enrollments WHERE course_id = %s
         """, (id,))
         offered_semesters = [row[0] for row in cur.fetchall()]
 
-        # Get current semester (most recent one)
         current_semester = None
         if offered_semesters:
             semester_order = {
@@ -243,7 +219,6 @@ def edit_course(id):
             }
             current_semester = min(offered_semesters, key=lambda s: semester_order.get(s, 999))
 
-        # Get enrolled students
         cur.execute("""
             SELECT e.enrollment_id, s.student_id, s.name AS student_name, e.semester, e.grade
             FROM enrollments e
@@ -262,11 +237,9 @@ def edit_course(id):
                 'grade': row[4]
             })
 
-        # Get departments for dropdown
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
 
-        # Get instructors for dropdown
         cur.execute("""
             SELECT i.instructor_id, i.name, i.email, d.department_name 
             FROM instructors i 
@@ -275,7 +248,6 @@ def edit_course(id):
         """)
         instructors = cur.fetchall()
 
-        # Available semesters
         semesters = ['Fall 2023', 'Winter 2024', 'Spring 2024', 'Fall 2024', 'Winter 2025', 'Spring 2025', 'Fall 2025']
 
         cur.close()
@@ -303,36 +275,30 @@ def update_course(id):
         department_id = request.form['department_id']
         instructor_id = request.form.get('instructor_id', '')
 
-        # Handle empty instructor selection
         if not instructor_id:
             instructor_id = None
 
         cur = conn.cursor()
 
-        # Update course record
         cur.execute("""
             UPDATE courses
             SET course_name = %s, credits = %s, department_id = %s, instructor_id = %s
             WHERE course_id = %s
         """, (course_name, credits, department_id, instructor_id, id))
 
-        # Handle semester offerings
         selected_semesters = request.form.getlist('semesters[]')
 
-        # Get current semester offerings
         cur.execute("SELECT DISTINCT semester FROM enrollments WHERE course_id = %s", (id,))
         current_semesters = [row[0] for row in cur.fetchall()]
 
-        # Semesters to add
         for semester in selected_semesters:
             if semester not in current_semesters:
-                # Check if any students are enrolled for this semester
+
                 cur.execute("""
                     SELECT COUNT(*) FROM enrollments 
                     WHERE course_id = %s AND semester = %s
                 """, (id, semester))
 
-                # If no enrollments exist for this semester, create a placeholder enrollment
                 if cur.fetchone()[0] == 0:
                     try:
                         cur.execute("""
@@ -359,7 +325,6 @@ def course_detail(id):
     try:
         cur = conn.cursor()
 
-        # Get course details
         cur.execute("""
             SELECT c.course_id, c.course_name, c.credits, c.department_id, c.instructor_id,
                    d.department_name, i.name as instructor_name
@@ -374,7 +339,6 @@ def course_detail(id):
             flash("Course not found", "danger")
             return redirect(url_for('course_offerings'))
 
-        # Create a dictionary for easier template access
         course = {
             'course_id': course_data[0],
             'course_name': course_data[1],
@@ -385,7 +349,6 @@ def course_detail(id):
             'instructor_name': course_data[6]
         }
 
-        # Get current semester - Fixed query to avoid ORDER BY with DISTINCT
         cur.execute("""
             SELECT semester FROM (
                 SELECT semester,
@@ -405,7 +368,6 @@ def course_detail(id):
         semester_row = cur.fetchone()
         course['semester'] = semester_row[0] if semester_row else None
 
-        # Get enrolled students
         cur.execute("""
             SELECT e.enrollment_id, s.student_id, s.name AS student_name, 
                    d.department_name, e.semester, e.grade
@@ -447,10 +409,8 @@ def delete_course(id):
     try:
         cur = conn.cursor()
 
-        # Delete all enrollments first (due to foreign key constraint)
         cur.execute("DELETE FROM enrollments WHERE course_id = %s", (id,))
 
-        # Delete course record
         cur.execute("DELETE FROM courses WHERE course_id = %s", (id,))
 
         conn.commit()
@@ -472,7 +432,6 @@ def course_offerings():
 
         cur = conn.cursor()
 
-        # Base query
         query = """
             WITH enrollment_counts AS (
                 SELECT course_id, COUNT(*) as enrolled_count
@@ -490,17 +449,12 @@ def course_offerings():
         """
         params = []
 
-        # Add search condition if search query exists
         if search_query:
             query += " AND (c.course_id::text = %s OR c.course_name ILIKE %s)"
-            # For course ID, we want exact matches only
-            # For course name, we want partial matches
             params.extend([search_query, f"%{search_query}%"])
 
-        # Add ordering
         query += " ORDER BY d.department_name, c.course_id"
 
-        # Execute query
         cur.execute(query, params)
 
         current_courses = []
@@ -514,7 +468,6 @@ def course_offerings():
                 'enrolled_count': row[5]
             })
 
-        # We skip the historical courses query when searching to keep it focused
         historical_courses = {}
         if not search_query:
             cur.execute("""

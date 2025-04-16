@@ -1,7 +1,6 @@
 from flask import Blueprint, render_template, flash, redirect, url_for, request
 from db import get_db_connection, release_db_connection
 
-# Create a Blueprint for instructor routes
 instructors_bp = Blueprint('instructors', __name__, url_prefix='/instructors')
 
 
@@ -109,13 +108,11 @@ def add_instructor():
             email = request.form['email']
             department_id = request.form.get('department_id')
 
-            # If department_id is empty, set to NULL
             if not department_id:
                 department_id = None
 
             cur = conn.cursor()
 
-            # Check if email already exists
             cur.execute("SELECT COUNT(*) FROM instructors WHERE email = %s", (email,))
             if cur.fetchone()[0] > 0:
                 flash("An instructor with this email already exists", "danger")
@@ -124,7 +121,6 @@ def add_instructor():
                 cur.close()
                 return render_template('add_instructor.html', departments=departments)
 
-            # Insert new instructor
             cur.execute("""
                 INSERT INTO instructors (name, email, department_id)
                 VALUES (%s, %s, %s)
@@ -137,7 +133,6 @@ def add_instructor():
             flash("Instructor added successfully!", "success")
             return redirect(url_for('instructors.instructor_detail', id=instructor_id))
 
-        # GET request - show form
         cur = conn.cursor()
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
@@ -161,13 +156,11 @@ def edit_instructor(id):
             email = request.form['email']
             department_id = request.form.get('department_id')
 
-            # If department_id is empty, set to NULL
             if not department_id:
                 department_id = None
 
             cur = conn.cursor()
 
-            # Check if email already exists for another instructor
             cur.execute("""
                 SELECT COUNT(*) FROM instructors 
                 WHERE email = %s AND instructor_id != %s
@@ -177,7 +170,6 @@ def edit_instructor(id):
                 flash("This email is already used by another instructor", "danger")
                 return redirect(url_for('instructors.edit_instructor', id=id))
 
-            # Update instructor
             cur.execute("""
                 UPDATE instructors
                 SET name = %s, email = %s, department_id = %s
@@ -188,10 +180,8 @@ def edit_instructor(id):
             flash("Instructor updated successfully", "success")
             return redirect(url_for('instructors.instructor_detail', id=id))
 
-        # GET request - show form
         cur = conn.cursor()
 
-        # Get instructor details
         cur.execute("""
             SELECT i.instructor_id, i.name, i.email, i.department_id, d.department_name
             FROM instructors i
@@ -229,13 +219,10 @@ def delete_instructor(id):
     try:
         cur = conn.cursor()
 
-        # Check if instructor is assigned to any courses
         cur.execute("SELECT COUNT(*) FROM courses WHERE instructor_id = %s", (id,))
         if cur.fetchone()[0] > 0:
-            # Update courses to remove this instructor
             cur.execute("UPDATE courses SET instructor_id = NULL WHERE instructor_id = %s", (id,))
 
-        # Delete the instructor
         cur.execute("DELETE FROM instructors WHERE instructor_id = %s", (id,))
 
         conn.commit()

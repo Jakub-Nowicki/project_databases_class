@@ -1,7 +1,6 @@
 from flask import Blueprint, render_template, flash, redirect, url_for, request
 from db import get_db_connection, release_db_connection
 
-# Create a Blueprint for enrollment routes
 enrollments_bp = Blueprint('enrollments', __name__, url_prefix='/enrollments')
 
 
@@ -103,7 +102,6 @@ def add_enrollment():
 
             cur = conn.cursor()
 
-            # Check if enrollment already exists
             cur.execute("""
                 SELECT COUNT(*) FROM enrollments 
                 WHERE student_id = %s AND course_id = %s AND semester = %s
@@ -123,10 +121,8 @@ def add_enrollment():
             flash("Enrollment added successfully", "success")
             return redirect(url_for('students.edit_enrollments', student_id=student_id))
 
-        # GET request - show form
         cur = conn.cursor()
 
-        # Get available students
         cur.execute("SELECT student_id, name FROM students ORDER BY name")
         students = cur.fetchall()
 
@@ -139,10 +135,8 @@ def add_enrollment():
         """)
         courses = cur.fetchall()
 
-        # Get available semesters
         semesters = ['Fall 2023', 'Winter 2024', 'Spring 2024', 'Fall 2024', 'Winter 2025', 'Spring 2025', 'Fall 2025']
 
-        # Get grade options
         grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F']
 
         cur.close()
@@ -167,7 +161,6 @@ def edit_enrollment(enrollment_id):
     try:
         cur = conn.cursor()
 
-        # Get enrollment details first (needed for both GET and POST)
         cur.execute("""
             SELECT e.student_id, e.course_id, e.semester, e.grade,
                    s.name as student_name, c.course_name
@@ -202,11 +195,8 @@ def edit_enrollment(enrollment_id):
             flash("Enrollment updated successfully", "success")
             return redirect(url_for('students.edit_enrollments', student_id=student_id))
 
-        # GET request - show form
-        # Get available semesters
         semesters = ['Fall 2023', 'Winter 2024', 'Spring 2024', 'Fall 2024', 'Winter 2025', 'Spring 2025', 'Fall 2025']
 
-        # Get grade options
         grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F']
 
         cur.close()
@@ -231,7 +221,6 @@ def delete_enrollment(enrollment_id):
     try:
         cur = conn.cursor()
 
-        # Get student_id first for redirect
         cur.execute("SELECT student_id FROM enrollments WHERE enrollment_id = %s", (enrollment_id,))
         result = cur.fetchone()
 
@@ -241,7 +230,6 @@ def delete_enrollment(enrollment_id):
 
         student_id = result[0]
 
-        # Delete enrollment
         cur.execute("DELETE FROM enrollments WHERE enrollment_id = %s", (enrollment_id,))
 
         conn.commit()
@@ -257,5 +245,4 @@ def delete_enrollment(enrollment_id):
 
 @enrollments_bp.route('/manage')
 def manage_enrollments():
-    # You can implement this later if needed
     return render_template('manage_enrollments.html')

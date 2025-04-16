@@ -4,7 +4,6 @@ from routes import register_blueprints
 
 app = Flask(__name__)
 app.secret_key = 'data_base_project_abhi_jakub_2025'
-# Register all blueprints
 register_blueprints(app)
 
 @app.route('/')
