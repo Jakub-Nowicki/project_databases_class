@@ -74,7 +74,7 @@ connection_pool = psycopg2.pool.SimpleConnectionPool(
     1, 20,
     dbname="project",
     user="postgres",
-    password="1234",
+    password="password",
     host="localhost",
     port="5432"
 )
