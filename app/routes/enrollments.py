@@ -242,6 +242,9 @@ def delete_enrollment(enrollment_id):
     finally:
         release_db_connection(conn)
 
+@enrollments_bp.route('/update/<int:enrollment_id>', methods=['GET', 'POST'])
+def update_enrollment(enrollment_id):
+    return edit_enrollment(enrollment_id)
 
 @enrollments_bp.route('/manage')
 def manage_enrollments():

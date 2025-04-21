@@ -85,7 +85,7 @@
                                         </td>
                                         <td>{{ enrollment[5] or "Unassigned" }}</td>
                                         <td class="text-end">
-                                            <a href="{{ url_for('enrollments.update_enrollment', enrollment_id=enrollment[0]) }}" class="btn btn-primary btn-sm">
+                                            <a href="{{ url_for('enrollments.edit_enrollment', enrollment_id=enrollment[0]) }}" class="btn btn-primary btn-sm">
                                                 <i class="fas fa-edit"></i> Edit
                                             </a>
                                             <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" 
