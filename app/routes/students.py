@@ -21,24 +21,43 @@ def list_students():
     conn = get_db_connection()
     try:
         search_query = request.args.get('search', '')
+        department_filter = request.args.get('department', '')
+        major_filter = request.args.get('major', '')
         page = int(request.args.get('page', 1))
         per_page = 30
 
         cur = conn.cursor()
 
+        # Get all departments for the filter dropdown
+        cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
+        departments = cur.fetchall()
+
+        # Get all distinct majors for the filter dropdown
+        cur.execute("SELECT DISTINCT major FROM students ORDER BY major")
+        majors = [row[0] for row in cur.fetchall()]
+
         query = """
-            SELECT student_id, name
-            FROM students
+            SELECT s.student_id, s.name, s.email, s.major, d.department_name 
+            FROM students s
+            LEFT JOIN departments d ON s.department_id = d.department_id
             WHERE 1=1
         """
         params = []
 
         if search_query:
-            query += " AND (student_id::text ILIKE %s OR name ILIKE %s)"
+            query += " AND (s.student_id::text ILIKE %s OR s.name ILIKE %s)"
             search_pattern = f"%{search_query}%"
             params.extend([search_pattern, search_pattern])
 
-        query += " ORDER BY student_id"
+        if department_filter:
+            query += " AND s.department_id = %s"
+            params.append(department_filter)
+
+        if major_filter:
+            query += " AND s.major = %s"
+            params.append(major_filter)
+
+        query += " ORDER BY s.student_id"
 
         count_query = f"SELECT COUNT(*) FROM ({query}) AS count_query"
         cur.execute(count_query, params)
@@ -57,7 +76,11 @@ def list_students():
         return render_template(
             'students.html',
             students=students,
+            departments=departments,
+            majors=majors,
             search_query=search_query,
+            department_filter=department_filter,
+            major_filter=major_filter,
             page=page,
             total_pages=total_pages,
             total_count=total_count
@@ -617,3 +640,5 @@ def delete_enrollment(enrollment_id):
         return redirect(url_for('students.edit_enrollments', student_id=student_id))
     finally:
         release_db_connection(conn)
+
+

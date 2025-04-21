@@ -18,19 +18,43 @@
                 </div>
 
                 <div class="card-body bg-light">
-                    <!-- Search Form -->
+                    <!-- Search and Filter Form -->
                     <div class="mb-4">
                         <form method="get" action="{{ url_for('students.list_students') }}" class="row g-3">
-                            <div class="col-md-8">
+                            <div class="col-md-4">
                                 <div class="input-group">
-                                    <input type="text" class="form-control" placeholder="Search by student ID or name"
+                                    <input type="text" class="form-control" placeholder="Search by ID or name"
                                            name="search" value="{{ search_query if search_query else '' }}">
                                     <button class="btn btn-dark" type="submit">
-                                        <i class="fas fa-search"></i> Search
+                                        <i class="fas fa-search"></i>
                                     </button>
                                 </div>
                             </div>
-                            <div class="col-md-4 text-end">
+
+                            <div class="col-md-3">
+                                <select class="form-select" name="department">
+                                    <option value="">All Departments</option>
+                                    {% for dept in departments %}
+                                    <option value="{{ dept[0] }}" {% if department_filter == dept[0]|string %}selected{% endif %}>
+                                        {{ dept[1] }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <select class="form-select" name="major">
+                                    <option value="">All Majors</option>
+                                    {% for major in majors %}
+                                    <option value="{{ major }}" {% if major_filter == major %}selected{% endif %}>
+                                        {{ major }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-2 d-flex">
+                                <button type="submit" class="btn btn-dark me-2">Apply</button>
                                 <a href="{{ url_for('students.list_students') }}" class="btn btn-outline-secondary">
                                     Reset
                                 </a>
@@ -38,12 +62,42 @@
                         </form>
                     </div>
 
+                    <!-- Active Filters Display -->
+                    {% if department_filter or major_filter %}
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center">
+                            <span class="me-2"><strong>Active Filters:</strong></span>
+                            {% if department_filter %}
+                                {% for dept in departments %}
+                                    {% if dept[0]|string == department_filter %}
+                                    <span class="badge bg-dark me-2 py-2 px-3">
+                                        Department: {{ dept[1] }}
+                                        <a href="{{ url_for('students.list_students', search=search_query, major=major_filter) }}"
+                                           class="text-white ms-2" style="text-decoration: none;">×</a>
+                                    </span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+
+                            {% if major_filter %}
+                            <span class="badge bg-dark me-2 py-2 px-3">
+                                Major: {{ major_filter }}
+                                <a href="{{ url_for('students.list_students', search=search_query, department=department_filter) }}"
+                                   class="text-white ms-2" style="text-decoration: none;">×</a>
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead class="table-dark">
                                 <tr>
                                     <th>ID</th>
                                     <th>Name</th>
+                                    <th>Major</th>
+                                    <th>Department</th>
                                     <th class="text-end">Action</th>
                                 </tr>
                             </thead>
@@ -53,6 +107,8 @@
                                     <tr>
                                         <td>{{ student[0] }}</td>
                                         <td>{{ student[1] }}</td>
+                                        <td>{{ student[3] }}</td>
+                                        <td>{{ student[4] }}</td>
                                         <td class="text-end">
                                             <a href="{{ url_for('students.student_detail', id=student[0]) }}" class="btn btn-dark btn-sm">
                                                 <i class="fas fa-user-circle me-1"></i> View Details
@@ -62,10 +118,10 @@
                                     {% endfor %}
                                 {% else %}
                                     <tr>
-                                        <td colspan="3" class="text-center py-4">
-                                            {% if search_query %}
+                                        <td colspan="5" class="text-center py-4">
+                                            {% if search_query or department_filter or major_filter %}
                                                 <div class="alert alert-info mb-0">
-                                                    <i class="fas fa-info-circle me-2"></i> No students found matching "{{ search_query }}".
+                                                    <i class="fas fa-info-circle me-2"></i> No students found matching your filters.
                                                 </div>
                                             {% else %}
                                                 <div class="alert alert-secondary mb-0">
@@ -88,7 +144,7 @@
                             <ul class="pagination mb-0">
                                 {% if page > 1 %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('students.list_students', page=page-1, search=search_query) }}">
+                                    <a class="page-link" href="{{ url_for('students.list_students', page=page-1, search=search_query, department=department_filter, major=major_filter) }}">
                                         Previous
                                     </a>
                                 </li>
@@ -104,7 +160,7 @@
 
                                 {% for p in range(start_page, end_page + 1) %}
                                 <li class="page-item {% if p == page %}active{% endif %}">
-                                    <a class="page-link" href="{{ url_for('students.list_students', page=p, search=search_query) }}">
+                                    <a class="page-link" href="{{ url_for('students.list_students', page=p, search=search_query, department=department_filter, major=major_filter) }}">
                                         {{ p }}
                                     </a>
                                 </li>
@@ -112,7 +168,7 @@
 
                                 {% if page < total_pages %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('students.list_students', page=page+1, search=search_query) }}">
+                                    <a class="page-link" href="{{ url_for('students.list_students', page=page+1, search=search_query, department=department_filter, major=major_filter) }}">
                                         Next
                                     </a>
                                 </li>
