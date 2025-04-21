@@ -28,11 +28,9 @@ def list_students():
 
         cur = conn.cursor()
 
-        # Get all departments for the filter dropdown
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
 
-        # Get all distinct majors for the filter dropdown
         cur.execute("SELECT DISTINCT major FROM students ORDER BY major")
         majors = [row[0] for row in cur.fetchall()]
 

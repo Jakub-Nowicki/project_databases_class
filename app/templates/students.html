@@ -96,6 +96,7 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Name</th>
+                                    <th>Email</th>
                                     <th>Major</th>
                                     <th>Department</th>
                                     <th class="text-end">Action</th>
@@ -107,6 +108,7 @@
                                     <tr>
                                         <td>{{ student[0] }}</td>
                                         <td>{{ student[1] }}</td>
+                                        <td>{{ student[2] }}</td>
                                         <td>{{ student[3] }}</td>
                                         <td>{{ student[4] }}</td>
                                         <td class="text-end">
@@ -118,7 +120,7 @@
                                     {% endfor %}
                                 {% else %}
                                     <tr>
-                                        <td colspan="5" class="text-center py-4">
+                                        <td colspan="6" class="text-center py-4">
                                             {% if search_query or department_filter or major_filter %}
                                                 <div class="alert alert-info mb-0">
                                                     <i class="fas fa-info-circle me-2"></i> No students found matching your filters.
