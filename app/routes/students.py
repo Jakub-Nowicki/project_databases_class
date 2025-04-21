@@ -157,13 +157,19 @@ def edit_students():
     try:
         search_query = request.args.get('search', '')
         department_filter = request.args.get('department', '')
+        major_filter = request.args.get('major', '')
         page = int(request.args.get('page', 1))
         per_page = 30
 
         cur = conn.cursor()
 
+        # Get departments for the filter dropdown
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
+
+        # Get distinct majors for the filter dropdown
+        cur.execute("SELECT DISTINCT major FROM students ORDER BY major")
+        majors = [row[0] for row in cur.fetchall()]
 
         query = """
             SELECT s.student_id, s.name, s.age, s.email, s.major, d.department_name, s.department_id
@@ -181,6 +187,10 @@ def edit_students():
         if department_filter:
             query += " AND s.department_id = %s"
             params.append(department_filter)
+
+        if major_filter:
+            query += " AND s.major = %s"
+            params.append(major_filter)
 
         query += " ORDER BY s.student_id"
 
@@ -202,8 +212,10 @@ def edit_students():
             'edit_student.html',
             students=students,
             departments=departments,
+            majors=majors,
             search_query=search_query,
             department_filter=department_filter,
+            major_filter=major_filter,
             page=page,
             total_pages=total_pages,
             total_count=total_count

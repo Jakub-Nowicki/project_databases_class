@@ -25,18 +25,20 @@
                     </div>
                     {% endif %}
                     
+                    <!-- Search and Filter Form -->
                     <div class="mb-4">
                         <form method="get" action="{{ url_for('students.edit_students') }}" class="row g-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="input-group">
-                                    <input type="text" class="form-control" placeholder="Search by student ID or name" 
+                                    <input type="text" class="form-control" placeholder="Search by ID or name"
                                            name="search" value="{{ search_query if search_query else '' }}">
                                     <button class="btn btn-dark" type="submit">
-                                        <i class="fas fa-search"></i> Search
+                                        <i class="fas fa-search"></i>
                                     </button>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+
+                            <div class="col-md-3">
                                 <select class="form-select" name="department">
                                     <option value="">All Departments</option>
                                     {% for dept in departments %}
@@ -46,14 +48,55 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="col-md-2">
-                                <a href="{{ url_for('students.edit_students') }}" class="btn btn-outline-secondary w-100">
+
+                            <div class="col-md-3">
+                                <select class="form-select" name="major">
+                                    <option value="">All Majors</option>
+                                    {% for major in majors %}
+                                    <option value="{{ major }}" {% if major_filter == major %}selected{% endif %}>
+                                        {{ major }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-2 d-flex">
+                                <button type="submit" class="btn btn-dark me-2">Apply</button>
+                                <a href="{{ url_for('students.edit_students') }}" class="btn btn-outline-secondary">
                                     Reset
                                 </a>
                             </div>
                         </form>
                     </div>
-                    
+
+                    <!-- Active Filters Display -->
+                    {% if department_filter or major_filter %}
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center">
+                            <span class="me-2"><strong>Active Filters:</strong></span>
+                            {% if department_filter %}
+                                {% for dept in departments %}
+                                    {% if dept[0]|string == department_filter %}
+                                    <span class="badge bg-dark me-2 py-2 px-3">
+                                        Department: {{ dept[1] }}
+                                        <a href="{{ url_for('students.edit_students', search=search_query, major=major_filter) }}"
+                                           class="text-white ms-2" style="text-decoration: none;">×</a>
+                                    </span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+
+                            {% if major_filter %}
+                            <span class="badge bg-dark me-2 py-2 px-3">
+                                Major: {{ major_filter }}
+                                <a href="{{ url_for('students.edit_students', search=search_query, department=department_filter) }}"
+                                   class="text-white ms-2" style="text-decoration: none;">×</a>
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead class="table-dark">
@@ -61,6 +104,7 @@
                                     <th>ID</th>
                                     <th>Name</th>
                                     <th>Email</th>
+                                    <th>Major</th>
                                     <th>Department</th>
                                     <th class="text-end">Actions</th>
                                 </tr>
@@ -72,30 +116,31 @@
                                         <td>{{ student[0] }}</td>
                                         <td>{{ student[1] }}</td>
                                         <td>{{ student[3] }}</td>
+                                        <td>{{ student[4] }}</td>
                                         <td>{{ student[5] }}</td>
                                         <td class="text-end">
                                             <a href="{{ url_for('students.edit_student', id=student[0]) }}" class="btn btn-primary btn-sm">
                                                 <i class="fas fa-edit"></i> Edit
                                             </a>
-                                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" 
+                                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
                                                     data-bs-target="#deleteModal{{ student[0] }}">
                                                 <i class="fas fa-trash"></i> Delete
                                             </button>
-                                            
+
                                             <!-- Delete Confirmation Modal -->
-                                            <div class="modal fade" id="deleteModal{{ student[0] }}" tabindex="-1" 
+                                            <div class="modal fade" id="deleteModal{{ student[0] }}" tabindex="-1"
                                                  aria-labelledby="deleteModalLabel{{ student[0] }}" aria-hidden="true">
                                                 <div class="modal-dialog">
                                                     <div class="modal-content">
                                                         <div class="modal-header bg-danger text-white">
                                                             <h5 class="modal-title" id="deleteModalLabel{{ student[0] }}">Confirm Deletion</h5>
-                                                            <button type="button" class="btn-close btn-close-white" 
+                                                            <button type="button" class="btn-close btn-close-white"
                                                                     data-bs-dismiss="modal" aria-label="Close"></button>
                                                         </div>
                                                         <div class="modal-body">
                                                             <p>Are you sure you want to delete this student?</p>
                                                             <div class="alert alert-warning">
-                                                                <strong>Warning:</strong> This action cannot be undone. All associated 
+                                                                <strong>Warning:</strong> This action cannot be undone. All associated
                                                                 enrollment records will also be deleted.
                                                             </div>
                                                             <div class="d-flex align-items-center bg-light p-3 rounded">
@@ -124,10 +169,10 @@
                                     {% endfor %}
                                 {% else %}
                                     <tr>
-                                        <td colspan="5" class="text-center py-4">
-                                            {% if search_query %}
+                                        <td colspan="6" class="text-center py-4">
+                                            {% if search_query or department_filter or major_filter %}
                                                 <div class="alert alert-info mb-0">
-                                                    <i class="fas fa-info-circle me-2"></i> No students found matching "{{ search_query }}".
+                                                    <i class="fas fa-info-circle me-2"></i> No students found matching your filters.
                                                 </div>
                                             {% else %}
                                                 <div class="alert alert-secondary mb-0">
@@ -140,7 +185,7 @@
                             </tbody>
                         </table>
                     </div>
-                    
+
                     {% if students|length > 0 %}
                     <div class="d-flex justify-content-between align-items-center mt-3">
                         <div>
@@ -151,7 +196,7 @@
                             <ul class="pagination mb-0">
                                 {% if page > 1 %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('students.edit_students', page=page-1, search=search_query, department=department_filter) }}">
+                                    <a class="page-link" href="{{ url_for('students.edit_students', page=page-1, search=search_query, department=department_filter, major=major_filter) }}">
                                         Previous
                                     </a>
                                 </li>
@@ -167,7 +212,7 @@
 
                                 {% if start_page > 1 %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('students.edit_students', page=1, search=search_query, department=department_filter) }}">1</a>
+                                    <a class="page-link" href="{{ url_for('students.edit_students', page=1, search=search_query, department=department_filter, major=major_filter) }}">1</a>
                                 </li>
                                 {% if start_page > 2 %}
                                 <li class="page-item disabled">
@@ -178,7 +223,7 @@
 
                                 {% for p in range(start_page, end_page + 1) %}
                                 <li class="page-item {% if p == page %}active{% endif %}">
-                                    <a class="page-link" href="{{ url_for('students.edit_students', page=p, search=search_query, department=department_filter) }}">
+                                    <a class="page-link" href="{{ url_for('students.edit_students', page=p, search=search_query, department=department_filter, major=major_filter) }}">
                                         {{ p }}
                                     </a>
                                 </li>
@@ -191,7 +236,7 @@
                                 </li>
                                 {% endif %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('students.edit_students', page=total_pages, search=search_query, department=department_filter) }}">
+                                    <a class="page-link" href="{{ url_for('students.edit_students', page=total_pages, search=search_query, department=department_filter, major=major_filter) }}">
                                         {{ total_pages }}
                                     </a>
                                 </li>
@@ -199,7 +244,7 @@
 
                                 {% if page < total_pages %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('students.edit_students', page=page+1, search=search_query, department=department_filter) }}">
+                                    <a class="page-link" href="{{ url_for('students.edit_students', page=page+1, search=search_query, department=department_filter, major=major_filter) }}">
                                         Next
                                     </a>
                                 </li>
