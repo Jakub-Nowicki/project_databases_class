@@ -1,6 +1,12 @@
-from flask import Blueprint, render_template, flash, redirect, url_for, request
+from flask import Blueprint, render_template, flash, redirect, url_for, request, make_response
 from db import get_db_connection, release_db_connection
 from gpa_calculator import calculate_gpa
+import io
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
 
 students_bp = Blueprint('students', __name__, url_prefix='/students')
 
@@ -143,6 +149,166 @@ def student_detail(id):
     finally:
         release_db_connection(conn)
 
+
+@students_bp.route('/<int:id>/download_report')
+def download_report(id):
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Get student information
+        cur.execute("""
+            SELECT s.student_id, s.name, s.age, s.email, s.major, d.department_name
+            FROM students s
+            LEFT JOIN departments d ON s.department_id = d.department_id
+            WHERE s.student_id = %s
+        """, (id,))
+        student = cur.fetchone()
+
+        if student is None:
+            flash("Student not found", "danger")
+            return redirect(url_for('students.list_students'))
+
+        # Get course information
+        cur.execute("""
+            SELECT c.course_name, c.credits, e.semester, e.grade, i.name as instructor_name
+            FROM enrollments e
+            JOIN courses c ON e.course_id = c.course_id
+            LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
+            WHERE e.student_id = %s
+            ORDER BY e.semester DESC
+        """, (id,))
+        all_courses = cur.fetchall()
+
+        current_courses = []
+        completed_courses = []
+        current_credits = 0
+
+        for course in all_courses:
+            credits = course[1] or 0
+
+            if course[3] is None:
+                current_courses.append(course)
+                current_credits += credits
+            else:
+                completed_courses.append(course)
+
+        gpa, completed_credits, gpa_points = calculate_gpa(all_courses)
+
+        # Create PDF report
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        elements = []
+
+        # Title
+        title_style = styles['Heading1']
+        title_style.alignment = 1  # Center alignment
+        elements.append(Paragraph(f"Student Report: {student[1]}", title_style))
+        elements.append(Spacer(1, 0.25 * inch))
+
+        # Student Information
+        info_data = [
+            ['Student ID:', str(student[0])],
+            ['Name:', student[1]],
+            ['Age:', str(student[2])],
+            ['Email:', student[3]],
+            ['Major:', student[4]],
+            ['Department:', student[5]],
+        ]
+
+        if gpa:
+            info_data.append(['GPA:', f"{gpa:.2f}"])
+            info_data.append(['Completed Credits:', str(completed_credits)])
+            info_data.append(['Current Credits:', str(current_credits)])
+
+        info_table = Table(info_data, colWidths=[2 * inch, 4 * inch])
+        info_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('BACKGROUND', (1, -3), (1, -1), colors.lightgrey),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        elements.append(info_table)
+        elements.append(Spacer(1, 0.25 * inch))
+
+        # Current Courses
+        if current_courses:
+            elements.append(Paragraph("Currently Enrolled Courses", styles['Heading2']))
+            elements.append(Spacer(1, 0.1 * inch))
+
+            current_table_data = [['Course Name', 'Credits', 'Semester', 'Instructor']]
+            for course in current_courses:
+                current_table_data.append([
+                    course[0],
+                    str(course[1]),
+                    course[2],
+                    course[4] or "Unassigned"
+                ])
+
+            current_table = Table(current_table_data, colWidths=[2.5 * inch, 1 * inch, 1.5 * inch, 2 * inch])
+            current_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ]))
+            elements.append(current_table)
+            elements.append(Spacer(1, 0.25 * inch))
+
+        # Completed Courses
+        if completed_courses:
+            elements.append(Paragraph("Completed Courses", styles['Heading2']))
+            elements.append(Spacer(1, 0.1 * inch))
+
+            completed_table_data = [['Course Name', 'Credits', 'Semester', 'Grade', 'Instructor']]
+            for course in completed_courses:
+                completed_table_data.append([
+                    course[0],
+                    str(course[1]),
+                    course[2],
+                    course[3],
+                    course[4] or "Unassigned"
+                ])
+
+            completed_table = Table(completed_table_data,
+                                    colWidths=[2 * inch, 0.75 * inch, 1.25 * inch, 0.75 * inch, 2 * inch])
+            completed_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ]))
+            elements.append(completed_table)
+
+        # Build PDF
+        doc.build(elements)
+
+        # Create response
+        pdf_data = buffer.getvalue()
+        buffer.close()
+
+        response = make_response(pdf_data)
+        response.headers['Content-Disposition'] = f'attachment; filename=student_report_{student[0]}.pdf'
+        response.mimetype = 'application/pdf'
+
+        return response
+    except Exception as e:
+        print(f"Error generating report: {str(e)}")
+        flash(f"Error generating report: {str(e)}", "danger")
+        return redirect(url_for('students.student_detail', id=id))
+    finally:
+        release_db_connection(conn)
 
 @students_bp.route('/manage')
 def manage_students():

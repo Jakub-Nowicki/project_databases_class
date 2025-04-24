@@ -13,7 +13,9 @@
                             <i class="fas fa-arrow-left"></i> Back
                         </a>
                         <h2 class="mb-0 text-center flex-grow-1">Student Profile</h2>
-                        <div style="width: 70px;"></div>
+                        <a href="{{ url_for('students.download_report', id=student[0]) }}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-download"></i> Download Report
+                        </a>
                     </div>
                 </div>
 
