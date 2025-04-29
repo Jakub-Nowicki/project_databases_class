@@ -59,15 +59,15 @@
 
                             <div class="col-md-6">
                                 <div class="mb-3">
-    <label for="department_id" class="form-label">Department</label>
-    <select class="form-select" id="department_id" name="department_id" required>
-        {% for dept in departments %}
-        <option value="{{ dept[0] }}" {% if dept[0] == course[3] %}selected{% endif %}>
-            {{ dept[1] }}
-        </option>
-        {% endfor %}
-    </select>
-</div>
+                                    <label for="department_id" class="form-label">Department</label>
+                                    <select class="form-select" id="department_id" name="department_id" required>
+                                        {% for dept in departments %}
+                                        <option value="{{ dept[0] }}" {% if dept[0] == course[3] %}selected{% endif %}>
+                                            {{ dept[1] }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
 
                                 <div class="mb-3">
                                     <label for="instructor_id" class="form-label">Instructor</label>
@@ -106,54 +106,61 @@
                         </div>
 
                         {% if enrolled_students %}
-                        <div class="card mb-4 shadow-sm">
-                            <div class="card-header bg-secondary text-white">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-user-graduate me-2"></i>
-                                    Enrolled Students
-                                </h5>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-hover mb-0">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Name</th>
-                                                <th>Semester</th>
-                                                <th>Grade</th>
-                                                <th class="text-end">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for enrollment in enrolled_students %}
-                                            <tr>
-                                                <td>{{ enrollment.student_id }}</td>
-                                                <td>{{ enrollment.student_name }}</td>
-                                                <td>{{ enrollment.semester }}</td>
-                                                <td>
-                                                    {% if enrollment.grade %}
-                                                    <span class="badge
-                                                        {% if enrollment.grade.startswith('A') %}bg-success{%
-                                                        elif enrollment.grade.startswith('B') %}bg-primary{%
-                                                        elif enrollment.grade.startswith('C') %}bg-warning text-dark{%
-                                                        elif enrollment.grade.startswith('D') %}bg-danger{%
-                                                        else %}bg-dark{% endif %}">
-                                                        {{ enrollment.grade }}
-                                                    </span>
-                                                    {% else %}
-                                                    <span class="badge bg-light text-dark">In Progress</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td class="text-end">
-                                                    <a href="{{ url_for('enrollments.edit_enrollment', enrollment_id=enrollment.enrollment_id) }}" class="btn btn-primary btn-sm">
-                                                        <i class="fas fa-edit"></i> Edit
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
+                        <!-- Accordion for enrolled students -->
+                        <div class="accordion mb-4" id="enrolledStudentsAccordion">
+                            <div class="accordion-item shadow-sm">
+                                <h2 class="accordion-header" id="headingEnrolledStudents">
+                                    <button class="accordion-button collapsed bg-secondary text-white" type="button"
+                                            data-bs-toggle="collapse" data-bs-target="#collapseEnrolledStudents"
+                                            aria-expanded="false" aria-controls="collapseEnrolledStudents">
+                                        <i class="fas fa-user-graduate me-2"></i> Enrolled Students ({{ enrolled_count }})
+                                    </button>
+                                </h2>
+                                <div id="collapseEnrolledStudents" class="accordion-collapse collapse"
+                                     aria-labelledby="headingEnrolledStudents" data-bs-parent="#enrolledStudentsAccordion">
+                                    <div class="accordion-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover mb-0">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th>ID</th>
+                                                        <th>Name</th>
+                                                        <th>Semester</th>
+                                                        <th>Grade</th>
+                                                        <th class="text-end">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for enrollment in enrolled_students %}
+                                                    <tr>
+                                                        <td>{{ enrollment.student_id }}</td>
+                                                        <td>{{ enrollment.student_name }}</td>
+                                                        <td>{{ enrollment.semester }}</td>
+                                                        <td>
+                                                            {% if enrollment.grade %}
+                                                            <span class="badge
+                                                                {% if enrollment.grade.startswith('A') %}bg-success{%
+                                                                elif enrollment.grade.startswith('B') %}bg-primary{%
+                                                                elif enrollment.grade.startswith('C') %}bg-warning text-dark{%
+                                                                elif enrollment.grade.startswith('D') %}bg-danger{%
+                                                                else %}bg-dark{% endif %}">
+                                                                {{ enrollment.grade }}
+                                                            </span>
+                                                            {% else %}
+                                                            <span class="badge bg-light text-dark">In Progress</span>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td class="text-end">
+                                                            <a href="{{ url_for('enrollments.edit_enrollment', enrollment_id=enrollment.enrollment_id) }}" class="btn btn-primary btn-sm">
+                                                                <i class="fas fa-edit"></i> Edit
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -210,6 +217,20 @@
 <style>
     .badge {
         font-size: 0.875rem;
+    }
+
+    /* Styling for accordion */
+    .accordion-button:not(.collapsed) {
+        color: white;
+    }
+
+    .accordion-button.bg-secondary:not(.collapsed) {
+        background-color: #343a40 !important;
+    }
+
+    .accordion-button:focus {
+        box-shadow: none;
+        border-color: rgba(0,0,0,.125);
     }
 </style>
 
