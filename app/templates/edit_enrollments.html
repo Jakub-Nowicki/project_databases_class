@@ -41,7 +41,7 @@
                     
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4 class="mb-0">Course Enrollments</h4>
-                        <a href="{{ url_for('enrollments.add_enrollment', student_id=student[0]) }}" class="btn btn-dark">
+                        <a href="{{ url_for('students.add_enrollment', student_id=student[0]) }}" class="btn btn-dark">
                             <i class="fas fa-plus me-2"></i> Add Enrollment
                         </a>
                     </div>
@@ -71,11 +71,11 @@
                                         </td>
                                         <td>
                                             {% if enrollment[4] %}
-                                                <span class="badge 
-                                                    {% if enrollment[4].startswith('A') %}bg-success{% 
-                                                    elif enrollment[4].startswith('B') %}bg-primary{% 
-                                                    elif enrollment[4].startswith('C') %}bg-warning text-dark{% 
-                                                    elif enrollment[4].startswith('D') %}bg-danger{% 
+                                                <span class="badge
+                                                    {% if enrollment[4].startswith('A') %}bg-success{%
+                                                    elif enrollment[4].startswith('B') %}bg-primary{%
+                                                    elif enrollment[4].startswith('C') %}bg-warning text-dark{%
+                                                    elif enrollment[4].startswith('D') %}bg-danger{%
                                                     else %}bg-dark{% endif %}">
                                                     {{ enrollment[4] }}
                                                 </span>
@@ -85,22 +85,22 @@
                                         </td>
                                         <td>{{ enrollment[5] or "Unassigned" }}</td>
                                         <td class="text-end">
-                                            <a href="{{ url_for('enrollments.edit_enrollment', enrollment_id=enrollment[0]) }}" class="btn btn-primary btn-sm">
+                                            <a href="{{ url_for('students.update_enrollment', enrollment_id=enrollment[0]) }}" class="btn btn-primary btn-sm">
                                                 <i class="fas fa-edit"></i> Edit
                                             </a>
-                                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" 
+                                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
                                                     data-bs-target="#deleteModal{{ enrollment[0] }}">
                                                 <i class="fas fa-trash"></i> Delete
                                             </button>
-                                            
+
                                             <!-- Delete Confirmation Modal -->
-                                            <div class="modal fade" id="deleteModal{{ enrollment[0] }}" tabindex="-1" 
+                                            <div class="modal fade" id="deleteModal{{ enrollment[0] }}" tabindex="-1"
                                                  aria-labelledby="deleteModalLabel{{ enrollment[0] }}" aria-hidden="true">
                                                 <div class="modal-dialog">
                                                     <div class="modal-content">
                                                         <div class="modal-header bg-danger text-white">
                                                             <h5 class="modal-title" id="deleteModalLabel{{ enrollment[0] }}">Confirm Deletion</h5>
-                                                            <button type="button" class="btn-close btn-close-white" 
+                                                            <button type="button" class="btn-close btn-close-white"
                                                                     data-bs-dismiss="modal" aria-label="Close"></button>
                                                         </div>
                                                         <div class="modal-body">
@@ -116,7 +116,7 @@
                                                         </div>
                                                         <div class="modal-footer">
                                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                            <form action="{{ url_for('enrollments.delete_enrollment', enrollment_id=enrollment[0]) }}" method="post">
+                                                            <form action="{{ url_for('students.delete_enrollment', enrollment_id=enrollment[0]) }}" method="post">
                                                                 <button type="submit" class="btn btn-danger">
                                                                     <i class="fas fa-trash me-1"></i> Delete Enrollment
                                                                 </button>

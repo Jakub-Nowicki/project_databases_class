@@ -591,7 +591,6 @@ def delete_student(id):
     finally:
         release_db_connection(conn)
 
-
 @students_bp.route('/enrollments/<int:student_id>', methods=['GET'])
 def edit_enrollments(student_id):
     conn = get_db_connection()
