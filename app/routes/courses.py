@@ -633,7 +633,7 @@ def delete_course(id):
         release_db_connection(conn)
 
 # Modified function for department-first organization
-
+# Modified function with improved semester ordering
 @courses_bp.route('/offerings')
 def course_offerings():
     conn = get_db_connection()
@@ -642,84 +642,82 @@ def course_offerings():
 
         cur = conn.cursor()
 
-        # Query to get courses with enrollment counts organized by semester
-        query = """
-            WITH enrollment_counts AS (
-                SELECT course_id, semester, COUNT(*) as enrolled_count
-                FROM enrollments
-                WHERE student_id IS NOT NULL
-                GROUP BY course_id, semester
-            )
+        # First get all courses with their regular info
+        query_base = """
             SELECT c.course_id, c.course_name, c.credits, d.department_name, 
-                   i.name as instructor_name, e.semester, COALESCE(e.enrolled_count, 0) as enrolled_count
+                   i.name as instructor_name
             FROM courses c
             LEFT JOIN departments d ON c.department_id = d.department_id
             LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
-            LEFT JOIN enrollment_counts e ON c.course_id = e.course_id
             WHERE 1=1
         """
-        params = []
 
+        params = []
         if search_query:
-            query += " AND (c.course_id::text = %s OR c.course_name ILIKE %s)"
+            query_base += " AND (c.course_id::text = %s OR c.course_name ILIKE %s)"
             params.extend([search_query, f"%{search_query}%"])
 
-        query += " ORDER BY d.department_name, e.semester, c.course_name"
+        query_base += " ORDER BY d.department_name, c.course_name"
 
-        cur.execute(query, params)
+        cur.execute(query_base, params)
+        all_courses = cur.fetchall()
 
-        # Organize courses by semester and department
+        # Now get all semester offerings (including those with NULL student_id)
+        # and count actual enrollments
         courses_by_semester = {}
-        for row in cur.fetchall():
-            semester = row[5] or "Unscheduled"
-            if semester not in courses_by_semester:
-                courses_by_semester[semester] = {}
 
-            department = row[3]
-            if department not in courses_by_semester[semester]:
-                courses_by_semester[semester][department] = []
+        for course in all_courses:
+            # For each course, find all semesters it's offered in
+            course_id = course[0]
+            cur.execute("""
+                SELECT DISTINCT semester FROM enrollments 
+                WHERE course_id = %s
+                ORDER BY semester
+            """, (course_id,))
 
-            courses_by_semester[semester][department].append({
-                'course_id': row[0],
-                'course_name': row[1],
-                'credits': row[2],
-                'instructor_name': row[4],
-                'enrolled_count': row[6]
-            })
+            # Get all semesters for this course
+            semesters = [row[0] for row in cur.fetchall()]
 
-        # Get semesters for unscheduled courses by looking at semester offerings
-        if "Unscheduled" in courses_by_semester:
-            for department, courses in courses_by_semester["Unscheduled"].items():
-                for course in courses:
-                    cur.execute("""
-                        SELECT DISTINCT semester 
-                        FROM enrollments 
-                        WHERE course_id = %s AND student_id IS NULL
-                        ORDER BY semester
-                    """, (course['course_id'],))
-                    semesters = [row[0] for row in cur.fetchall()]
+            # For each semester, count actual student enrollments
+            for semester in semesters:
+                cur.execute("""
+                    SELECT COUNT(*) FROM enrollments
+                    WHERE course_id = %s AND semester = %s AND student_id IS NOT NULL
+                """, (course_id, semester))
+                enrolled_count = cur.fetchone()[0]
 
-                    # Add course to each semester it's offered
-                    for sem in semesters:
-                        if sem not in courses_by_semester:
-                            courses_by_semester[sem] = {}
+                # Create course entry with all needed info
+                course_entry = {
+                    'course_id': course[0],
+                    'course_name': course[1],
+                    'credits': course[2],
+                    'instructor_name': course[4],
+                    'enrolled_count': enrolled_count
+                }
 
-                        if department not in courses_by_semester[sem]:
-                            courses_by_semester[sem][department] = []
+                # Add to courses_by_semester structure
+                if semester not in courses_by_semester:
+                    courses_by_semester[semester] = {}
 
-                        courses_by_semester[sem][department].append(course)
+                department = course[3]
+                if department not in courses_by_semester[semester]:
+                    courses_by_semester[semester][department] = []
 
-            # Remove the Unscheduled key as we've now reorganized these courses
-            if "Unscheduled" in courses_by_semester:
-                del courses_by_semester["Unscheduled"]
+                courses_by_semester[semester][department].append(course_entry)
 
         # Define the order in which semesters should be displayed
+        # Order from newest to oldest, with years grouped together
         semester_order = [
+            # 2027 Academic Year
+            'Fall 2027', 'Spring 2027', 'Winter 2027',
+            # 2026 Academic Year
+            'Fall 2026', 'Spring 2026', 'Winter 2026',
+            # 2025 Academic Year
             'Fall 2025', 'Spring 2025', 'Winter 2025',
+            # 2024 Academic Year
             'Fall 2024', 'Spring 2024', 'Winter 2024',
-            'Fall 2023', 'Winter 2026', 'Spring 2026',
-            'Fall 2026', 'Winter 2027', 'Spring 2027',
-            'Fall 2027'
+            # 2023 Academic Year
+            'Fall 2023'
         ]
 
         cur.close()
