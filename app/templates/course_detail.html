@@ -22,7 +22,9 @@
                             <i class="fas fa-arrow-left"></i> Back
                         </a>
                         <h2 class="mb-0 text-center flex-grow-1">Course Details</h2>
-                        <div style="width: 70px;"></div>
+                        <a href="{{ url_for('courses.download_report', id=course.course_id) }}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-download"></i> Download Report
+                        </a>
                     </div>
                 </div>
 
