@@ -41,27 +41,32 @@
                         </div>
                     </div>
 
+                    <!-- For debugging -->
+                    <div id="debug" style="display: none;">
+                        <pre>{{ course_semesters|tojson(indent=2) }}</pre>
+                    </div>
+
                     <form method="post" action="{{ url_for('students.add_enrollment', student_id=student[0]) }}">
                         <div class="mb-3">
                             <label for="course_id" class="form-label">Course</label>
-                            <select class="form-select" id="course_id" name="course_id" required>
+                            <select class="form-select" id="course_id" name="course_id" required onchange="updateSemesters()">
                                 <option value="" selected disabled>Select Course</option>
                                 {% for course in courses %}
-                                <option value="{{ course[0] }}">{{ course[1] }} ({{ course[2] }} Department)</option>
+                                <option value="{{ course[0] }}" data-semesters="{{ course_semesters.get(course[0]|string, [])|tojson }}">
+                                    {{ course[1] }} ({{ course[2] }} Department)
+                                </option>
                                 {% endfor %}
                             </select>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="semester" class="form-label">Semester</label>
-                            <select class="form-select" id="semester" name="semester" required>
-                                <option value="" selected disabled>Select Semester</option>
-                                {% for semester in semesters %}
-                                <option value="{{ semester }}">{{ semester }}</option>
-                                {% endfor %}
+                            <select class="form-select" id="semester" name="semester" required disabled>
+                                <option value="" selected disabled>Select a course first</option>
                             </select>
+                            <small id="semesterHelp" class="form-text text-muted">Available semesters for the selected course</small>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="grade" class="form-label">Grade (leave blank for current courses)</label>
                             <select class="form-select" id="grade" name="grade">
@@ -71,7 +76,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        
+
                         <div class="d-grid gap-2 mt-4">
                             <button type="submit" class="btn btn-dark">
                                 <i class="fas fa-plus me-2"></i> Add Enrollment
@@ -99,6 +104,73 @@
         font-weight: bold;
     }
 </style>
+
+<script>
+    // Toggle debugging info (can be removed in production)
+    function toggleDebug() {
+        const debug = document.getElementById('debug');
+        debug.style.display = debug.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Run on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Uncomment to show debug info
+        // toggleDebug();
+    });
+
+    function updateSemesters() {
+    const courseSelect = document.getElementById('course_id');
+    const semesterSelect = document.getElementById('semester');
+    const semesterHelp = document.getElementById('semesterHelp');
+
+    // Clear current options
+    semesterSelect.innerHTML = '';
+
+    // If no course is selected, disable the semester dropdown
+    if (!courseSelect.value) {
+        semesterSelect.disabled = true;
+        semesterSelect.innerHTML = '<option value="" selected disabled>Select a course first</option>';
+        return;
+    }
+
+    // Enable the semester dropdown
+    semesterSelect.disabled = false;
+
+    // Get the selected option
+    const selectedOption = courseSelect.options[courseSelect.selectedIndex];
+
+    // Try to parse the JSON data - add error handling
+    let semesters = [];
+    try {
+        const semestersData = selectedOption.getAttribute('data-semesters');
+        semesters = JSON.parse(semestersData);
+    } catch (e) {
+        console.error("Error parsing semesters:", e);
+        semesters = [];
+    }
+
+    // Add available semesters as options
+    if (semesters && semesters.length > 0) {
+        semesterHelp.textContent = 'Available semesters for this course:';
+        semesters.forEach(semester => {
+            const option = document.createElement('option');
+            option.value = semester;
+            option.textContent = semester;
+            semesterSelect.appendChild(option);
+        });
+    } else {
+        // If there are no available semesters, add default semesters
+        semesterHelp.textContent = 'This course has no scheduled semesters. You can choose from the defaults:';
+        const defaultSemesters = ['Fall 2023', 'Winter 2024', 'Spring 2024', 'Fall 2024', 'Winter 2025', 'Spring 2025', 'Fall 2025'];
+        defaultSemesters.forEach(semester => {
+            const option = document.createElement('option');
+            option.value = semester;
+            option.textContent = semester;
+            semesterSelect.appendChild(option);
+        });
+    }
+}
+</script>
 
 <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 {% endblock %}

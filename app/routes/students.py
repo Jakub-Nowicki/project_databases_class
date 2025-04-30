@@ -657,7 +657,6 @@ def edit_enrollments(student_id):
     finally:
         release_db_connection(conn)
 
-
 @students_bp.route('/enrollment/add/<int:student_id>', methods=['GET', 'POST'])
 def add_enrollment(student_id):
     conn = get_db_connection()
@@ -703,6 +702,7 @@ def add_enrollment(student_id):
             flash("Student not found", "danger")
             return redirect(url_for('students.edit_students'))
 
+        # Get all courses with their departments
         cur.execute("""
             SELECT c.course_id, c.course_name, d.department_name
             FROM courses c
@@ -711,7 +711,28 @@ def add_enrollment(student_id):
         """)
         courses = cur.fetchall()
 
-        semesters = ['Fall 2023', 'Winter 2024', 'Spring 2024', 'Fall 2024', 'Winter 2025', 'Spring 2025', 'Fall 2025']
+        # In the add_enrollment function
+        # Get available semesters for each course
+        course_semesters = {}
+        for course in courses:
+            course_id = str(course[0])
+
+            # Only look for semesters that are explicitly offered for this course
+            # (where there's a NULL student_id entry)
+            # Get all distinct semesters that this course is offered in
+            cur.execute("""
+                SELECT DISTINCT semester 
+                FROM enrollments 
+                WHERE course_id = %s AND semester IS NOT NULL
+                UNION
+                SELECT DISTINCT semester 
+                FROM enrollments 
+                WHERE course_id = %s AND student_id IS NULL
+                ORDER BY semester
+            """, (course[0], course[0]))
+
+            semesters = [row[0] for row in cur.fetchall()]
+            course_semesters[course_id] = semesters
 
         grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F']
 
@@ -720,7 +741,7 @@ def add_enrollment(student_id):
             'add_enrollment.html',
             student=student,
             courses=courses,
-            semesters=semesters,
+            course_semesters=course_semesters,
             grades=grades
         )
     except Exception as e:

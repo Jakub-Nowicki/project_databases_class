@@ -399,7 +399,8 @@ def edit_course(id):
             return redirect(url_for('courses.edit_courses'))
 
         cur.execute("""
-            SELECT COUNT(*) FROM enrollments WHERE course_id = %s
+            SELECT COUNT(*) FROM enrollments 
+            WHERE course_id = %s AND student_id IS NOT NULL
         """, (id,))
         enrolled_count = cur.fetchone()[0]
 
@@ -488,27 +489,37 @@ def update_course(id):
             WHERE course_id = %s
         """, (course_name, credits, department_id, instructor_id, id))
 
+        # Get currently selected semesters
         selected_semesters = request.form.getlist('semesters[]')
 
-        cur.execute("SELECT DISTINCT semester FROM enrollments WHERE course_id = %s", (id,))
+        # Get current semesters in the database
+        cur.execute("""
+            SELECT DISTINCT semester FROM enrollments 
+            WHERE course_id = %s AND student_id IS NULL
+        """, (id,))
         current_semesters = [row[0] for row in cur.fetchall()]
 
+        # Add new semesters
         for semester in selected_semesters:
             if semester not in current_semesters:
+                try:
+                    cur.execute("""
+                        INSERT INTO enrollments (course_id, student_id, semester)
+                        VALUES (%s, NULL, %s)
+                    """, (id, semester))
+                except Exception as e:
+                    print(f"Warning: Could not add semester offering: {str(e)}")
 
-                cur.execute("""
-                    SELECT COUNT(*) FROM enrollments 
-                    WHERE course_id = %s AND semester = %s
-                """, (id, semester))
-
-                if cur.fetchone()[0] == 0:
-                    try:
-                        cur.execute("""
-                            INSERT INTO enrollments (course_id, student_id, semester)
-                            VALUES (%s, NULL, %s)
-                        """, (id, semester))
-                    except Exception as e:
-                        print(f"Warning: Could not add semester offering: {str(e)}")
+        # Remove deselected semesters (only where student_id is NULL)
+        for semester in current_semesters:
+            if semester not in selected_semesters:
+                try:
+                    cur.execute("""
+                        DELETE FROM enrollments 
+                        WHERE course_id = %s AND semester = %s AND student_id IS NULL
+                    """, (id, semester))
+                except Exception as e:
+                    print(f"Warning: Could not remove semester offering: {str(e)}")
 
         conn.commit()
         flash("Course updated successfully", "success")
