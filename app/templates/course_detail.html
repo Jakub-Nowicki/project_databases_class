@@ -51,7 +51,6 @@
                                 </p>
                                 <p>
                                     <strong>Total Enrolled Students:</strong>
-                                    {% set total_students = 0 %}
                                     {% for semester, students in students_by_semester.items() %}
                                         {% set total_students = total_students + students|length %}
                                     {% endfor %}

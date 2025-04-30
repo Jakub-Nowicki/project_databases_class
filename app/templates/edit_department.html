@@ -114,9 +114,7 @@
                         <div class="tab-pane fade" id="faculty" role="tabpanel" aria-labelledby="faculty-tab">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="mb-0">Faculty Members</h5>
-                                <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#addInstructorModal">
-                                    <i class="fas fa-plus me-2"></i> Add Instructor
-                                </button>
+                                <!-- Add Instructor button removed -->
                             </div>
 
                             <div class="table-responsive">
@@ -195,60 +193,8 @@
                                 </table>
                             </div>
                         </div>
-
-
-
-<!-- Add Instructor Modal -->
-<div class="modal fade" id="addInstructorModal" tabindex="-1" aria-labelledby="addInstructorModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title" id="addInstructorModalLabel">Add Instructor to Department</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="addInstructorForm" action="{{ url_for('departments.add_instructor_to_department', dept_id=department.id) }}" method="post">
-                    <div class="mb-3">
-                        <label class="form-label">Select Instructor</label>
-                        {% if available_instructors %}
-                            <select class="form-select" name="instructor_id" required>
-                                <option value="" selected disabled>Choose an instructor</option>
-                                {% for instructor in available_instructors %}
-                                <option value="{{ instructor[0] }}">{{ instructor[1] }} ({{ instructor[2] }})</option>
-                                {% endfor %}
-                            </select>
-                        {% else %}
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i> No instructors available to add to this department.
-                            </div>
-                        {% endif %}
                     </div>
-
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="createNewInstructor" name="createNew">
-                        <label class="form-check-label" for="createNewInstructor">
-                            Create a new instructor instead
-                        </label>
-                    </div>
-
-                    <div id="newInstructorFields" style="display: none;">
-                        <div class="mb-3">
-                            <label for="instructor_name" class="form-label">Instructor Name</label>
-                            <input type="text" class="form-control" id="instructor_name" name="instructor_name">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="instructor_email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="instructor_email" name="instructor_email">
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" form="addInstructorForm" class="btn btn-dark">
-                    <i class="fas fa-user-plus me-1"></i> Add to Department
-                </button>
+                </div>
             </div>
         </div>
     </div>
@@ -325,34 +271,6 @@
         overflow: hidden;
     }
 </style>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const createNewCheckbox = document.getElementById('createNewInstructor');
-        const newInstructorFields = document.getElementById('newInstructorFields');
-        const instructorSelect = document.querySelector('select[name="instructor_id"]');
-
-        createNewCheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                newInstructorFields.style.display = 'block';
-                if (instructorSelect) {
-                    instructorSelect.disabled = true;
-                    instructorSelect.required = false;
-                }
-                document.getElementById('instructor_name').required = true;
-                document.getElementById('instructor_email').required = true;
-            } else {
-                newInstructorFields.style.display = 'none';
-                if (instructorSelect) {
-                    instructorSelect.disabled = false;
-                    instructorSelect.required = true;
-                }
-                document.getElementById('instructor_name').required = false;
-                document.getElementById('instructor_email').required = false;
-            }
-        });
-    });
-</script>
 
 <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 {% endblock %}

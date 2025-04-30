@@ -407,50 +407,45 @@ def delete_department(id):
     try:
         cur = conn.cursor()
 
-        cur.execute("SELECT department_id FROM departments WHERE department_name = 'General' LIMIT 1")
-        default_dept = cur.fetchone()
+        print(f"Attempting direct deletion of department ID: {id}")
 
-        if not default_dept:
-            cur.execute("""
-                INSERT INTO departments (department_name, head_of_department)
-                VALUES ('General', 'Administrator')
-                RETURNING department_id
-            """)
-            default_dept_id = cur.fetchone()[0]
-        else:
-            default_dept_id = default_dept[0]
+        # First disable the foreign key constraints temporarily
+        cur.execute("SET CONSTRAINTS ALL DEFERRED")
 
-        if id == default_dept_id:
-            flash("Cannot delete the default department", "danger")
-            return redirect(url_for('departments.edit_departments'))
+        # Directly delete any references in other tables
+        print("Removing related records...")
 
-        cur.execute("""
-            UPDATE students
-            SET department_id = %s
-            WHERE department_id = %s
-        """, (default_dept_id, id))
+        # Update students to have NULL department
+        cur.execute("UPDATE students SET department_id = NULL WHERE department_id = %s", (id,))
+        student_count = cur.rowcount
+        print(f"Set {student_count} students to NULL department")
 
-        cur.execute("""
-            UPDATE courses
-            SET department_id = %s
-            WHERE department_id = %s
-        """, (default_dept_id, id))
+        # Update courses to have NULL department
+        cur.execute("UPDATE courses SET department_id = NULL WHERE department_id = %s", (id,))
+        course_count = cur.rowcount
+        print(f"Set {course_count} courses to NULL department")
 
-        cur.execute("""
-            UPDATE instructors
-            SET department_id = %s
-            WHERE department_id = %s
-        """, (default_dept_id, id))
+        # Update instructors to have NULL department
+        cur.execute("UPDATE instructors SET department_id = NULL WHERE department_id = %s", (id,))
+        instructor_count = cur.rowcount
+        print(f"Set {instructor_count} instructors to NULL department")
 
+        # Now directly delete the department
         cur.execute("DELETE FROM departments WHERE department_id = %s", (id,))
+        deleted = cur.rowcount
+        print(f"Deleted {deleted} department records")
 
         conn.commit()
-        flash("Department deleted successfully. All associated records have been reassigned.", "success")
+        print("Transaction committed")
+
+        flash("Department successfully deleted", "success")
         return redirect(url_for('departments.edit_departments'))
+
     except Exception as e:
         conn.rollback()
+        print(f"Error in simplified delete_department: {str(e)}")
         flash(f"Error deleting department: {str(e)}", "danger")
-        return redirect(url_for('departments.edit_department', id=id))
+        return redirect(url_for('departments.edit_departments'))
     finally:
         release_db_connection(conn)
 
@@ -459,27 +454,54 @@ def delete_department(id):
 def add_instructor_to_department(dept_id):
     conn = get_db_connection()
     try:
+        # Debug: Print out all form data to see what's being received
+        print("Form data received:", request.form)
+
+        # Check if createNew is in the form data
         create_new = 'createNew' in request.form
+        print(f"Create new instructor? {create_new}")
 
         cur = conn.cursor()
 
         if create_new:
+            print("Attempting to create new instructor")
+            # Check if required fields are present
+            if 'instructor_name' not in request.form or 'instructor_email' not in request.form:
+                print("Missing required fields for new instructor")
+                flash("Missing required fields for new instructor", "danger")
+                return redirect(url_for('departments.edit_department', id=dept_id))
+
             instructor_name = request.form['instructor_name']
             instructor_email = request.form['instructor_email']
 
+            print(f"New instructor details: {instructor_name}, {instructor_email}")
+
             cur.execute("SELECT COUNT(*) FROM instructors WHERE email = %s", (instructor_email,))
             if cur.fetchone()[0] > 0:
+                print("Email already exists")
                 flash("An instructor with this email already exists", "danger")
                 return redirect(url_for('departments.edit_department', id=dept_id))
 
-            cur.execute("""
-                INSERT INTO instructors (name, email, department_id)
-                VALUES (%s, %s, %s)
-            """, (instructor_name, instructor_email, dept_id))
+            # Insert the new instructor - explicitly specify all needed columns
+            try:
+                cur.execute("""
+                    INSERT INTO instructors (name, email, department_id)
+                    VALUES (%s, %s, %s)
+                    RETURNING instructor_id
+                """, (instructor_name, instructor_email, dept_id))
 
-            flash(f"Instructor '{instructor_name}' created and added to the department", "success")
+                new_id = cur.fetchone()[0]
+                print(f"New instructor created with ID: {new_id}")
+
+                flash(f"Instructor '{instructor_name}' created and added to the department", "success")
+            except Exception as e:
+                print(f"Database error during insert: {str(e)}")
+                raise e
+
         else:
+            # Existing instructor code remains unchanged
             instructor_id = request.form['instructor_id']
+            print(f"Adding existing instructor ID: {instructor_id}")
 
             cur.execute("""
                 UPDATE instructors
@@ -496,6 +518,7 @@ def add_instructor_to_department(dept_id):
         return redirect(url_for('departments.edit_department', id=dept_id))
     except Exception as e:
         conn.rollback()
+        print(f"Error in add_instructor_to_department: {str(e)}")
         flash(f"Error adding instructor: {str(e)}", "danger")
         return redirect(url_for('departments.edit_department', id=dept_id))
     finally:

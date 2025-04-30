@@ -513,8 +513,7 @@ def add_student():
 
             conn.commit()
             flash("Student added successfully!", "success")
-            return redirect(url_for('students.edit_student', id=student_id))
-
+            return redirect(url_for('students.edit_enrollments', student_id=student_id))
         cur = conn.cursor()
 
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")

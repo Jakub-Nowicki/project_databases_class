@@ -532,50 +532,48 @@ def update_course(id):
         release_db_connection(conn)
 
 # Fix for the course_detail function in courses.py
-
 @courses_bp.route('/<int:id>')
 def course_detail(id):
     conn = get_db_connection()
     try:
         cur = conn.cursor()
 
-        # Get course information
+        # 1. Fetch basic course info
         cur.execute("""
             SELECT c.course_id, c.course_name, c.credits, c.department_id, c.instructor_id,
-                   d.department_name, i.name as instructor_name
+                   d.department_name, i.name AS instructor_name
             FROM courses c
             LEFT JOIN departments d ON c.department_id = d.department_id
             LEFT JOIN instructors i ON c.instructor_id = i.instructor_id
             WHERE c.course_id = %s
         """, (id,))
         course_data = cur.fetchone()
-
         if course_data is None:
             flash("Course not found", "danger")
             return redirect(url_for('courses.course_offerings'))
 
         course = {
-            'course_id': course_data[0],
-            'course_name': course_data[1],
-            'credits': course_data[2],
+            'course_id':     course_data[0],
+            'course_name':   course_data[1],
+            'credits':       course_data[2],
             'department_id': course_data[3],
             'instructor_id': course_data[4],
             'department_name': course_data[5],
             'instructor_name': course_data[6]
         }
 
-        # Get all semesters this course is offered - fixed query that was causing the error
+        # 2. Which semesters is it offered in?
         cur.execute("""
-            SELECT DISTINCT semester 
-            FROM enrollments 
+            SELECT DISTINCT semester
+            FROM enrollments
             WHERE course_id = %s
             ORDER BY semester
         """, (id,))
         course['semesters'] = [row[0] for row in cur.fetchall()]
 
-        # Get enrolled students organized by semester
+        # 3. Load all enrolled students, grouped by semester
         cur.execute("""
-            SELECT e.enrollment_id, s.student_id, s.name AS student_name, 
+            SELECT e.enrollment_id, s.student_id, s.name AS student_name,
                    d.department_name, s.major, e.semester, e.grade
             FROM enrollments e
             JOIN students s ON e.student_id = s.student_id
@@ -585,21 +583,26 @@ def course_detail(id):
         """, (id,))
 
         students_by_semester = {}
-        for row in cur.fetchall():
-            semester = row[5]
-            if semester not in students_by_semester:
-                students_by_semester[semester] = []
-
-            students_by_semester[semester].append({
-                'enrollment_id': row[0],
-                'student_id': row[1],
-                'student_name': row[2],
-                'department_name': row[3],
-                'major': row[4],
-                'grade': row[6]
+        for enrollment_id, student_id, student_name, dept_name, major, semester, grade in cur.fetchall():
+            students_by_semester.setdefault(semester, []).append({
+                'enrollment_id': enrollment_id,
+                'student_id':    student_id,
+                'student_name':  student_name,
+                'department_name': dept_name,
+                'major':         major,
+                'grade':         grade
             })
 
-        # Define the order in which semesters should be displayed
+        # 4. Compute total enrolled students (only those with a non-NULL student_id)
+        cur.execute("""
+            SELECT COUNT(*)
+            FROM enrollments
+            WHERE course_id = %s
+              AND student_id IS NOT NULL
+        """, (id,))
+        total_students = cur.fetchone()[0]
+
+        # 5. Define display order for semesters if you like
         semester_order = [
             'Fall 2025', 'Spring 2025', 'Winter 2025',
             'Fall 2024', 'Spring 2024', 'Winter 2024',
@@ -609,18 +612,23 @@ def course_detail(id):
         ]
 
         cur.close()
+
         return render_template(
             'course_detail.html',
             course=course,
             students_by_semester=students_by_semester,
-            semester_order=semester_order
+            semester_order=semester_order,
+            total_students=total_students
         )
+
     except Exception as e:
-        print(f"Error in course_detail: {str(e)}")
-        flash(f"Error retrieving course details: {str(e)}", "danger")
+        print(f"Error in course_detail: {e}")
+        flash(f"Error retrieving course details: {e}", "danger")
         return redirect(url_for('courses.course_offerings'))
+
     finally:
         release_db_connection(conn)
+
 
 
 @courses_bp.route('/delete/<int:id>', methods=['POST'])
