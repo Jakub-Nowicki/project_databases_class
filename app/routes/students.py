@@ -14,6 +14,7 @@ def get_all_departments():
     conn = get_db_connection()
     try:
         cur = conn.cursor()
+        # get all departments
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
         cur.close()
@@ -34,6 +35,7 @@ def list_students():
 
         cur = conn.cursor()
 
+        # search and filter students
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
 
@@ -99,6 +101,7 @@ def student_detail(id):
     try:
         cur = conn.cursor()
 
+        # get student details
         cur.execute("""
             SELECT s.student_id, s.name, s.age, s.email, s.major, d.department_name
             FROM students s
@@ -111,6 +114,7 @@ def student_detail(id):
             flash("Student not found", "danger")
             return redirect(url_for('students.list_students'))
 
+        # get course enrollments for student
         cur.execute("""
             SELECT c.course_name, c.credits, e.semester, e.grade, i.name as instructor_name
             FROM enrollments e
@@ -156,7 +160,6 @@ def download_report(id):
     try:
         cur = conn.cursor()
 
-        # Get student information
         cur.execute("""
             SELECT s.student_id, s.name, s.age, s.email, s.major, d.department_name
             FROM students s
@@ -169,7 +172,6 @@ def download_report(id):
             flash("Student not found", "danger")
             return redirect(url_for('students.list_students'))
 
-        # Get course information
         cur.execute("""
             SELECT c.course_name, c.credits, e.semester, e.grade, i.name as instructor_name
             FROM enrollments e
@@ -195,19 +197,16 @@ def download_report(id):
 
         gpa, completed_credits, gpa_points = calculate_gpa(all_courses)
 
-        # Create PDF report
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
         styles = getSampleStyleSheet()
         elements = []
 
-        # Title
         title_style = styles['Heading1']
         title_style.alignment = 1  # Center alignment
         elements.append(Paragraph(f"Student Report: {student[1]}", title_style))
         elements.append(Spacer(1, 0.25 * inch))
 
-        # Student Information
         info_data = [
             ['Student ID:', str(student[0])],
             ['Name:', student[1]],
@@ -236,7 +235,6 @@ def download_report(id):
         elements.append(info_table)
         elements.append(Spacer(1, 0.25 * inch))
 
-        # Current Courses
         if current_courses:
             elements.append(Paragraph("Currently Enrolled Courses", styles['Heading2']))
             elements.append(Spacer(1, 0.1 * inch))
@@ -263,7 +261,6 @@ def download_report(id):
             elements.append(current_table)
             elements.append(Spacer(1, 0.25 * inch))
 
-        # Completed Courses
         if completed_courses:
             elements.append(Paragraph("Completed Courses", styles['Heading2']))
             elements.append(Spacer(1, 0.1 * inch))
@@ -291,10 +288,8 @@ def download_report(id):
             ]))
             elements.append(completed_table)
 
-        # Build PDF
         doc.build(elements)
 
-        # Create response
         pdf_data = buffer.getvalue()
         buffer.close()
 
@@ -327,11 +322,9 @@ def edit_students():
 
         cur = conn.cursor()
 
-        # Get departments for the filter dropdown
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
 
-        # Get distinct majors for the filter dropdown
         cur.execute("SELECT DISTINCT major FROM students ORDER BY major")
         majors = [row[0] for row in cur.fetchall()]
 
@@ -454,11 +447,9 @@ def add_student():
 
             cur.execute("SELECT COUNT(*) FROM students WHERE email = %s", (email,))
             if cur.fetchone()[0] > 0:
-                # Get departments for dropdown
                 cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
                 departments = cur.fetchall()
 
-                # Get existing majors for dropdown
                 cur.execute("SELECT DISTINCT major FROM students ORDER BY major")
                 majors = [row[0] for row in cur.fetchall()]
 
@@ -485,11 +476,13 @@ def add_student():
                                            departments=departments,
                                            majors=majors)
 
+                # insert student with provided id
                 cur.execute("""
                     INSERT INTO students (student_id, name, age, email, major, department_id)
                     VALUES (%s, %s, %s, %s, %s, %s)
                 """, (student_id, name, age, email, major, department_id))
             else:
+                # find next available student id
                 cur.execute("""
                     SELECT MIN(t.student_id + 1) AS next_id 
                     FROM students t 
@@ -505,6 +498,7 @@ def add_student():
                 """)
                 next_id = cur.fetchone()[0]
 
+                # insert student with auto-generated id
                 cur.execute("""
                     INSERT INTO students (student_id, name, age, email, major, department_id)
                     VALUES (%s, %s, %s, %s, %s, %s)
@@ -544,6 +538,7 @@ def update_student(id):
 
         cur = conn.cursor()
 
+        # check if email exists for another student
         cur.execute("""
             SELECT COUNT(*) FROM students 
             WHERE email = %s AND student_id != %s
@@ -553,6 +548,7 @@ def update_student(id):
             flash("Email already exists for another student", "danger")
             return redirect(url_for('students.edit_student', id=id))
 
+        # update student info
         cur.execute("""
             UPDATE students
             SET name = %s, age = %s, email = %s, major = %s, department_id = %s
@@ -576,8 +572,10 @@ def delete_student(id):
     try:
         cur = conn.cursor()
 
+        # delete enrollments for student
         cur.execute("DELETE FROM enrollments WHERE student_id = %s", (id,))
 
+        # delete student
         cur.execute("DELETE FROM students WHERE student_id = %s", (id,))
 
         conn.commit()
@@ -596,6 +594,7 @@ def edit_enrollments(student_id):
     try:
         cur = conn.cursor()
 
+        # get student info for enrollments page
         cur.execute("""
             SELECT s.student_id, s.name, s.email, d.department_name
             FROM students s
@@ -608,6 +607,7 @@ def edit_enrollments(student_id):
             flash("Student not found", "danger")
             return redirect(url_for('students.edit_students'))
 
+        # get enrollments for student
         cur.execute("""
             SELECT e.enrollment_id, c.course_id, c.course_name, e.semester, e.grade,
                   i.name as instructor_name, d.department_name
@@ -628,6 +628,7 @@ def edit_enrollments(student_id):
         """, (student_id,))
         enrollments = cur.fetchall()
 
+        # get available courses for enrollment
         cur.execute("""
             SELECT c.course_id, c.course_name, d.department_name, i.name as instructor_name
             FROM courses c
@@ -667,7 +668,6 @@ def add_enrollment(student_id):
             if grade == '':
                 grade = None
 
-            # Check if enrollment already exists
             cur = conn.cursor()
             cur.execute("""
                 SELECT COUNT(*) FROM enrollments 
@@ -678,7 +678,6 @@ def add_enrollment(student_id):
                 flash("Enrollment already exists for this student, course, and semester", "danger")
                 return redirect(url_for('students.add_enrollment', student_id=student_id))
 
-            # Add enrollment
             cur.execute("""
                 INSERT INTO enrollments (student_id, course_id, semester, grade)
                 VALUES (%s, %s, %s, %s)
@@ -701,7 +700,6 @@ def add_enrollment(student_id):
             flash("Student not found", "danger")
             return redirect(url_for('students.edit_students'))
 
-        # Get all courses with their departments
         cur.execute("""
             SELECT c.course_id, c.course_name, d.department_name
             FROM courses c
@@ -710,15 +708,10 @@ def add_enrollment(student_id):
         """)
         courses = cur.fetchall()
 
-        # In the add_enrollment function
-        # Get available semesters for each course
         course_semesters = {}
         for course in courses:
             course_id = str(course[0])
 
-            # Only look for semesters that are explicitly offered for this course
-            # (where there's a NULL student_id entry)
-            # Get all distinct semesters that this course is offered in
             cur.execute("""
                 SELECT DISTINCT semester 
                 FROM enrollments 

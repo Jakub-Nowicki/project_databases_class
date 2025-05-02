@@ -9,6 +9,7 @@ def list_instructors():
     conn = get_db_connection()
     try:
         cur = conn.cursor()
+        # get all instructors with department info
         cur.execute("""
             SELECT i.instructor_id, i.name, i.email, d.department_name
             FROM instructors i
@@ -28,6 +29,7 @@ def instructor_detail(id):
     try:
         cur = conn.cursor()
 
+        # get instructor details with department
         cur.execute("""
             SELECT i.instructor_id, i.name, i.email, d.department_name, d.department_id
             FROM instructors i
@@ -40,6 +42,7 @@ def instructor_detail(id):
             flash("Instructor not found", "danger")
             return redirect(url_for('instructors.list_instructors'))
 
+        # get courses taught by instructor with enrollment counts
         cur.execute("""
             WITH enrollment_counts AS (
                 SELECT course_id, semester, COUNT(*) as enrolled_count
@@ -113,6 +116,7 @@ def add_instructor():
 
             cur = conn.cursor()
 
+            # check if email already exists
             cur.execute("SELECT COUNT(*) FROM instructors WHERE email = %s", (email,))
             if cur.fetchone()[0] > 0:
                 flash("An instructor with this email already exists", "danger")
@@ -121,6 +125,7 @@ def add_instructor():
                 cur.close()
                 return render_template('add_instructor.html', departments=departments)
 
+            # insert new instructor
             cur.execute("""
                 INSERT INTO instructors (name, email, department_id)
                 VALUES (%s, %s, %s)
@@ -161,6 +166,7 @@ def edit_instructor(id):
 
             cur = conn.cursor()
 
+            # check if email is used by another instructor
             cur.execute("""
                 SELECT COUNT(*) FROM instructors 
                 WHERE email = %s AND instructor_id != %s
@@ -170,6 +176,7 @@ def edit_instructor(id):
                 flash("This email is already used by another instructor", "danger")
                 return redirect(url_for('instructors.edit_instructor', id=id))
 
+            # update instructor
             cur.execute("""
                 UPDATE instructors
                 SET name = %s, email = %s, department_id = %s
@@ -195,7 +202,6 @@ def edit_instructor(id):
             flash("Instructor not found", "danger")
             return redirect(url_for('instructors.list_instructors'))
 
-        # Get all departments for dropdown
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
 
@@ -219,10 +225,12 @@ def delete_instructor(id):
     try:
         cur = conn.cursor()
 
+        # check if instructor teaches any courses
         cur.execute("SELECT COUNT(*) FROM courses WHERE instructor_id = %s", (id,))
         if cur.fetchone()[0] > 0:
+            # update courses to have NULL instructor
             cur.execute("UPDATE courses SET instructor_id = NULL WHERE instructor_id = %s", (id,))
-
+        # delete instructor
         cur.execute("DELETE FROM instructors WHERE instructor_id = %s", (id,))
 
         conn.commit()

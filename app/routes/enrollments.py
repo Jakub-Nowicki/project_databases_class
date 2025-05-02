@@ -10,6 +10,7 @@ def list_enrollments():
     try:
         cur = conn.cursor()
 
+        # get all enrollments with related information
         cur.execute("""
             SELECT 
                 e.enrollment_id,
@@ -102,6 +103,7 @@ def add_enrollment():
 
             cur = conn.cursor()
 
+            # check if enrollment already exists
             cur.execute("""
                 SELECT COUNT(*) FROM enrollments 
                 WHERE student_id = %s AND course_id = %s AND semester = %s
@@ -111,7 +113,7 @@ def add_enrollment():
                 flash("Enrollment already exists for this student, course, and semester", "danger")
                 return redirect(url_for('enrollments.add_enrollment'))
 
-            # Add enrollment
+            # add enrollment
             cur.execute("""
                 INSERT INTO enrollments (student_id, course_id, semester, grade)
                 VALUES (%s, %s, %s, %s)
@@ -123,10 +125,11 @@ def add_enrollment():
 
         cur = conn.cursor()
 
+        # get all students
         cur.execute("SELECT student_id, name FROM students ORDER BY name")
         students = cur.fetchall()
 
-        # Get available courses
+        # get all courses
         cur.execute("""
             SELECT c.course_id, c.course_name, d.department_name
             FROM courses c
@@ -161,6 +164,7 @@ def edit_enrollment(enrollment_id):
     try:
         cur = conn.cursor()
 
+        # get enrollment details
         cur.execute("""
             SELECT e.student_id, e.course_id, e.semester, e.grade,
                    s.name as student_name, c.course_name
@@ -184,7 +188,7 @@ def edit_enrollment(enrollment_id):
             if grade == '':
                 grade = None
 
-            # Update enrollment
+            # update enrollment
             cur.execute("""
                 UPDATE enrollments
                 SET semester = %s, grade = %s
@@ -221,6 +225,7 @@ def delete_enrollment(enrollment_id):
     try:
         cur = conn.cursor()
 
+        # get student id for enrollment
         cur.execute("SELECT student_id FROM enrollments WHERE enrollment_id = %s", (enrollment_id,))
         result = cur.fetchone()
 
@@ -230,6 +235,7 @@ def delete_enrollment(enrollment_id):
 
         student_id = result[0]
 
+        # delete enrollment
         cur.execute("DELETE FROM enrollments WHERE enrollment_id = %s", (enrollment_id,))
 
         conn.commit()

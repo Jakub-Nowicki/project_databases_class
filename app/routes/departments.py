@@ -9,6 +9,7 @@ def list_departments():
     conn = get_db_connection()
     try:
         cur = conn.cursor()
+        # get departments with counts of related entities
         cur.execute("""
             SELECT d.department_id, d.department_name, d.head_of_department,
                    COUNT(DISTINCT s.student_id) as student_count,
@@ -34,6 +35,7 @@ def department_detail(id):
     try:
         cur = conn.cursor()
 
+        # get department basic info
         cur.execute("""
             SELECT department_id, department_name, head_of_department
             FROM departments
@@ -55,6 +57,7 @@ def department_detail(id):
             'course_count': 0
         }
 
+        # count students in department
         cur.execute("""
             SELECT COUNT(DISTINCT student_id)
             FROM students
@@ -62,6 +65,7 @@ def department_detail(id):
         """, (id,))
         department['student_count'] = cur.fetchone()[0]
 
+        # count courses in department
         cur.execute("""
             SELECT COUNT(DISTINCT course_id)
             FROM courses
@@ -69,6 +73,7 @@ def department_detail(id):
         """, (id,))
         department['course_count'] = cur.fetchone()[0]
 
+        # get instructors in department with course counts
         cur.execute("""
             SELECT i.instructor_id, i.name, i.email,
                    COUNT(DISTINCT c.course_id) as course_count
@@ -88,6 +93,7 @@ def department_detail(id):
             }
             department['instructors'].append(instructor)
 
+        # get courses offered by department with enrollment counts
         cur.execute("""
             WITH enrollment_counts AS (
                 SELECT course_id, semester, COUNT(*) as enrolled_count
@@ -157,6 +163,7 @@ def add_department():
 
             cur = conn.cursor()
 
+            # check if department id already exists
             if department_id:
                 cur.execute("SELECT COUNT(*) FROM departments WHERE department_id = %s", (department_id,))
                 if cur.fetchone()[0] > 0:
@@ -169,11 +176,13 @@ def add_department():
                                            message_type="danger",
                                            unassigned_instructors=unassigned_instructors)
 
+                # adding / inserting new department
                 cur.execute("""
                     INSERT INTO departments (department_id, department_name, head_of_department)
                     VALUES (%s, %s, %s)
                 """, (department_id, department_name, head_of_department))
             else:
+                # insert department with auto-generated id
                 cur.execute("""
                     INSERT INTO departments (department_name, head_of_department)
                     VALUES (%s, %s)
@@ -183,6 +192,7 @@ def add_department():
 
             if instructor_ids:
                 for instructor_id in instructor_ids:
+                    # associate instructors with department
                     cur.execute("""
                         UPDATE instructors
                         SET department_id = %s
@@ -216,6 +226,7 @@ def edit_departments():
 
         cur = conn.cursor()
 
+        # search and filter departments
         query = """
             SELECT d.department_id, d.department_name, d.head_of_department,
                    COUNT(DISTINCT s.student_id) as student_count,
@@ -384,6 +395,7 @@ def update_department(id):
 
         cur = conn.cursor()
 
+        # update department information
         cur.execute("""
             UPDATE departments
             SET department_name = %s, head_of_department = %s
@@ -409,28 +421,27 @@ def delete_department(id):
 
         print(f"Attempting direct deletion of department ID: {id}")
 
-        # First disable the foreign key constraints temporarily
+        # temporarily turn off foreign key checks so we can delete a department first
+        # and then handle the connected records (students, courses, instructors) without errors
         cur.execute("SET CONSTRAINTS ALL DEFERRED")
-
-        # Directly delete any references in other tables
         print("Removing related records...")
 
-        # Update students to have NULL department
+        # set students to have NULL department
         cur.execute("UPDATE students SET department_id = NULL WHERE department_id = %s", (id,))
         student_count = cur.rowcount
         print(f"Set {student_count} students to NULL department")
 
-        # Update courses to have NULL department
+        # set courses to have NULL department
         cur.execute("UPDATE courses SET department_id = NULL WHERE department_id = %s", (id,))
         course_count = cur.rowcount
         print(f"Set {course_count} courses to NULL department")
 
-        # Update instructors to have NULL department
+        # set instructors to have NULL department
         cur.execute("UPDATE instructors SET department_id = NULL WHERE department_id = %s", (id,))
         instructor_count = cur.rowcount
         print(f"Set {instructor_count} instructors to NULL department")
 
-        # Now directly delete the department
+        # delete the departmentt
         cur.execute("DELETE FROM departments WHERE department_id = %s", (id,))
         deleted = cur.rowcount
         print(f"Deleted {deleted} department records")
@@ -454,10 +465,8 @@ def delete_department(id):
 def add_instructor_to_department(dept_id):
     conn = get_db_connection()
     try:
-        # Debug: Print out all form data to see what's being received
         print("Form data received:", request.form)
 
-        # Check if createNew is in the form data
         create_new = 'createNew' in request.form
         print(f"Create new instructor? {create_new}")
 
@@ -465,7 +474,6 @@ def add_instructor_to_department(dept_id):
 
         if create_new:
             print("Attempting to create new instructor")
-            # Check if required fields are present
             if 'instructor_name' not in request.form or 'instructor_email' not in request.form:
                 print("Missing required fields for new instructor")
                 flash("Missing required fields for new instructor", "danger")
@@ -473,7 +481,7 @@ def add_instructor_to_department(dept_id):
 
             instructor_name = request.form['instructor_name']
             instructor_email = request.form['instructor_email']
-
+            # check if email already exists for instructor
             print(f"New instructor details: {instructor_name}, {instructor_email}")
 
             cur.execute("SELECT COUNT(*) FROM instructors WHERE email = %s", (instructor_email,))
@@ -482,7 +490,7 @@ def add_instructor_to_department(dept_id):
                 flash("An instructor with this email already exists", "danger")
                 return redirect(url_for('departments.edit_department', id=dept_id))
 
-            # Insert the new instructor - explicitly specify all needed columns
+            # insert new instructor
             try:
                 cur.execute("""
                     INSERT INTO instructors (name, email, department_id)
@@ -499,7 +507,6 @@ def add_instructor_to_department(dept_id):
                 raise e
 
         else:
-            # Existing instructor code remains unchanged
             instructor_id = request.form['instructor_id']
             print(f"Adding existing instructor ID: {instructor_id}")
 
@@ -509,6 +516,7 @@ def add_instructor_to_department(dept_id):
                 WHERE instructor_id = %s
             """, (dept_id, instructor_id))
 
+            # get instructor name
             cur.execute("SELECT name FROM instructors WHERE instructor_id = %s", (instructor_id,))
             instructor_name = cur.fetchone()[0]
 
@@ -534,6 +542,7 @@ def remove_instructor_from_department(dept_id, instructor_id):
         cur.execute("SELECT name FROM instructors WHERE instructor_id = %s", (instructor_id,))
         instructor_name = cur.fetchone()[0]
 
+        # remove instructor from department
         cur.execute("""
             UPDATE instructors
             SET department_id = NULL
@@ -556,6 +565,7 @@ def list_majors():
     try:
         cur = conn.cursor()
 
+        # get departments with majors and student counts
         cur.execute("""
             SELECT d.department_id, d.department_name, s.major, COUNT(*) as student_count
             FROM students s

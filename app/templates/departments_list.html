@@ -19,12 +19,7 @@
 
                 <div class="card-body bg-light">
 
-                    <!-- Add this after the main header or where appropriate -->
-                    <div class="text-end mb-3">
-                        <a href="{{ url_for('departments.list_majors') }}" class="btn btn-dark">
-                            <i class="fas fa-graduation-cap me-2"></i> View Majors by Department
-                        </a>
-                    </div>
+
 
                     <div class="row g-4">
                         {% for department in departments %}

@@ -21,7 +21,7 @@ def download_report(id):
     try:
         cur = conn.cursor()
 
-        # Get course information
+        # get course details including department and instructor information
         cur.execute("""
             SELECT c.course_id, c.course_name, c.credits, c.department_id, c.instructor_id,
                    d.department_name, i.name as instructor_name, i.email as instructor_email
@@ -45,7 +45,7 @@ def download_report(id):
             'instructor_email': course_data[7] or "N/A"
         }
 
-        # Get semester info for the course
+        # find all semester offerings for this course
         cur.execute("""
             SELECT DISTINCT semester FROM enrollments 
             WHERE course_id = %s
@@ -53,7 +53,7 @@ def download_report(id):
         """, (id,))
         semesters = [row[0] for row in cur.fetchall()]
 
-        # Get enrolled students
+        # get all enrolled students with their details
         cur.execute("""
             SELECT e.enrollment_id, s.student_id, s.name AS student_name, 
                    d.department_name, s.major, e.semester, e.grade
@@ -75,19 +75,16 @@ def download_report(id):
                 'grade': row[6] or "Not Graded"
             })
 
-        # Create PDF report
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
         styles = getSampleStyleSheet()
         elements = []
 
-        # Title
         title_style = styles['Heading1']
-        title_style.alignment = 1  # Center alignment
+        title_style.alignment = 1
         elements.append(Paragraph(f"Course Report: {course['course_name']}", title_style))
         elements.append(Spacer(1, 0.25 * inch))
 
-        # Course Information
         info_data = [
             ['Course ID:', str(course['course_id'])],
             ['Course Name:', course['course_name']],
@@ -112,7 +109,7 @@ def download_report(id):
         elements.append(info_table)
         elements.append(Spacer(1, 0.25 * inch))
 
-        # Group students by semester
+        # group students by semester
         students_by_semester = {}
         for student in enrolled_students:
             semester = student['semester']
@@ -120,7 +117,7 @@ def download_report(id):
                 students_by_semester[semester] = []
             students_by_semester[semester].append(student)
 
-        # Enrolled Students by Semester
+        # enrolled Students by Semester
         for semester, students in students_by_semester.items():
             elements.append(Paragraph(f"Students Enrolled in {semester}", styles['Heading2']))
             elements.append(Spacer(1, 0.1 * inch))
@@ -154,13 +151,11 @@ def download_report(id):
 
             elements.append(Spacer(1, 0.25 * inch))
 
-        # Class Statistics (if there are grades)
         graded_students = [s for s in enrolled_students if s['grade'] != "Not Graded"]
         if graded_students:
             elements.append(Paragraph("Grade Distribution", styles['Heading2']))
             elements.append(Spacer(1, 0.1 * inch))
 
-            # Count grades
             grade_counts = {}
             for student in graded_students:
                 grade = student['grade']
@@ -169,7 +164,6 @@ def download_report(id):
                 else:
                     grade_counts[grade] = 1
 
-            # Sort grades in a meaningful order
             grade_order = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F']
             sorted_grades = sorted(grade_counts.keys(), key=lambda g: grade_order.index(g) if g in grade_order else 999)
 
@@ -192,10 +186,8 @@ def download_report(id):
             elements.append(stats_table)
             elements.append(Spacer(1, 0.25 * inch))
 
-        # Build PDF
         doc.build(elements)
 
-        # Create response
         pdf_data = buffer.getvalue()
         buffer.close()
 
@@ -228,14 +220,13 @@ def add_course():
 
             cur = conn.cursor()
 
+            # check if course id already exists before adding
             if course_id:
                 cur.execute("SELECT COUNT(*) FROM courses WHERE course_id = %s", (course_id,))
                 if cur.fetchone()[0] > 0:
-                    # Get departments for dropdown
                     cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
                     departments = cur.fetchall()
 
-                    # Get instructors for dropdown
                     cur.execute("""
                         SELECT i.instructor_id, i.name, i.email, d.department_name 
                         FROM instructors i 
@@ -250,11 +241,13 @@ def add_course():
                                            departments=departments,
                                            instructors=instructors)
 
+                # insert a new course with provided information
                 cur.execute("""
                     INSERT INTO courses (course_id, course_name, credits, department_id, instructor_id)
                     VALUES (%s, %s, %s, %s, %s)
                 """, (course_id, course_name, credits, department_id, instructor_id))
             else:
+                # find the next available course id
                 cur.execute("""
                     SELECT MIN(t.course_id + 1) AS next_id 
                     FROM courses t 
@@ -273,6 +266,7 @@ def add_course():
                 if next_id is None:
                     next_id = 1
 
+                # add semester offering for a course
                 cur.execute("""
                     INSERT INTO courses (course_id, course_name, credits, department_id, instructor_id)
                     VALUES (%s, %s, %s, %s, %s)
@@ -294,9 +288,11 @@ def add_course():
 
         cur = conn.cursor()
 
+        # get all departments for dropdown selection
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
 
+        # get all instructors with their department info for dropdown
         cur.execute("""
             SELECT i.instructor_id, i.name, i.email, d.department_name 
             FROM instructors i 
@@ -329,6 +325,7 @@ def edit_courses():
         cur.execute("SELECT department_id, department_name FROM departments ORDER BY department_name")
         departments = cur.fetchall()
 
+        # search and filter courses with pagination
         query = """
             SELECT c.course_id, c.course_name, c.credits, c.department_id, c.instructor_id,
                    d.department_name, i.name as instructor_name
@@ -350,6 +347,7 @@ def edit_courses():
 
         query += " ORDER BY c.course_id"
 
+        # count total results for pagination
         count_query = f"SELECT COUNT(*) FROM ({query}) AS count_query"
         cur.execute(count_query, params)
         total_count = cur.fetchone()[0]
@@ -357,6 +355,7 @@ def edit_courses():
         total_pages = (total_count + per_page - 1) // per_page
         offset = (page - 1) * per_page
 
+        # limit results to specific page size and skip previous pages
         query += " LIMIT %s OFFSET %s"
         params.extend([per_page, offset])
 
@@ -384,6 +383,7 @@ def edit_course(id):
     try:
         cur = conn.cursor()
 
+        # get course details with joins to related tables
         cur.execute("""
             SELECT c.course_id, c.course_name, c.credits, c.department_id, c.instructor_id,
                    d.department_name, i.name as instructor_name
@@ -398,12 +398,14 @@ def edit_course(id):
             flash("Course not found", "danger")
             return redirect(url_for('courses.edit_courses'))
 
+        # count enrolled students for this course
         cur.execute("""
             SELECT COUNT(*) FROM enrollments 
             WHERE course_id = %s AND student_id IS NOT NULL
         """, (id,))
         enrolled_count = cur.fetchone()[0]
 
+        # get semesters this course is offered in
         cur.execute("""
             SELECT DISTINCT semester FROM enrollments WHERE course_id = %s
         """, (id,))
@@ -422,6 +424,7 @@ def edit_course(id):
             }
             current_semester = min(offered_semesters, key=lambda s: semester_order.get(s, 999))
 
+        # get all students enrolled in this course with details
         cur.execute("""
             SELECT e.enrollment_id, s.student_id, s.name AS student_name, e.semester, e.grade
             FROM enrollments e
@@ -483,26 +486,26 @@ def update_course(id):
 
         cur = conn.cursor()
 
+        # update course information
         cur.execute("""
             UPDATE courses
             SET course_name = %s, credits = %s, department_id = %s, instructor_id = %s
             WHERE course_id = %s
         """, (course_name, credits, department_id, instructor_id, id))
 
-        # Get currently selected semesters
         selected_semesters = request.form.getlist('semesters[]')
 
-        # Get current semesters in the database
+        # get all semester offerings where student_id is NULL
         cur.execute("""
             SELECT DISTINCT semester FROM enrollments 
             WHERE course_id = %s AND student_id IS NULL
         """, (id,))
         current_semesters = [row[0] for row in cur.fetchall()]
 
-        # Add new semesters
         for semester in selected_semesters:
             if semester not in current_semesters:
                 try:
+                    # add a new semester offering
                     cur.execute("""
                         INSERT INTO enrollments (course_id, student_id, semester)
                         VALUES (%s, NULL, %s)
@@ -510,10 +513,10 @@ def update_course(id):
                 except Exception as e:
                     print(f"Warning: Could not add semester offering: {str(e)}")
 
-        # Remove deselected semesters (only where student_id is NULL)
         for semester in current_semesters:
             if semester not in selected_semesters:
                 try:
+                    # remove a semester offering
                     cur.execute("""
                         DELETE FROM enrollments 
                         WHERE course_id = %s AND semester = %s AND student_id IS NULL
@@ -531,14 +534,13 @@ def update_course(id):
     finally:
         release_db_connection(conn)
 
-# Fix for the course_detail function in courses.py
 @courses_bp.route('/<int:id>')
 def course_detail(id):
     conn = get_db_connection()
     try:
         cur = conn.cursor()
 
-        # 1. Fetch basic course info
+        # get basic course information
         cur.execute("""
             SELECT c.course_id, c.course_name, c.credits, c.department_id, c.instructor_id,
                    d.department_name, i.name AS instructor_name
@@ -562,7 +564,7 @@ def course_detail(id):
             'instructor_name': course_data[6]
         }
 
-        # 2. Which semesters is it offered in?
+        # get all semesters for this course
         cur.execute("""
             SELECT DISTINCT semester
             FROM enrollments
@@ -571,7 +573,7 @@ def course_detail(id):
         """, (id,))
         course['semesters'] = [row[0] for row in cur.fetchall()]
 
-        # 3. Load all enrolled students, grouped by semester
+        # get all enrolled students with details
         cur.execute("""
             SELECT e.enrollment_id, s.student_id, s.name AS student_name,
                    d.department_name, s.major, e.semester, e.grade
@@ -593,7 +595,7 @@ def course_detail(id):
                 'grade':         grade
             })
 
-        # 4. Compute total enrolled students (only those with a non-NULL student_id)
+        # count total enrolled students
         cur.execute("""
             SELECT COUNT(*)
             FROM enrollments
@@ -602,7 +604,6 @@ def course_detail(id):
         """, (id,))
         total_students = cur.fetchone()[0]
 
-        # 5. Define display order for semesters if you like
         semester_order = [
             'Fall 2025', 'Spring 2025', 'Winter 2025',
             'Fall 2024', 'Spring 2024', 'Winter 2024',
@@ -636,9 +637,9 @@ def delete_course(id):
     conn = get_db_connection()
     try:
         cur = conn.cursor()
-
+        # delete enrollments for a course
         cur.execute("DELETE FROM enrollments WHERE course_id = %s", (id,))
-
+        # delete the course
         cur.execute("DELETE FROM courses WHERE course_id = %s", (id,))
 
         conn.commit()
@@ -651,8 +652,6 @@ def delete_course(id):
     finally:
         release_db_connection(conn)
 
-# Modified function for department-first organization
-# Modified function with improved semester ordering
 @courses_bp.route('/offerings')
 def course_offerings():
     conn = get_db_connection()
@@ -661,7 +660,7 @@ def course_offerings():
 
         cur = conn.cursor()
 
-        # First get all courses with their regular info
+        # get courses organized by department and semester
         query_base = """
             SELECT c.course_id, c.course_name, c.credits, d.department_name, 
                    i.name as instructor_name
@@ -680,14 +679,11 @@ def course_offerings():
 
         cur.execute(query_base, params)
         all_courses = cur.fetchall()
-
-        # Now get all semester offerings (including those with NULL student_id)
-        # and count actual enrollments
         courses_by_semester = {}
 
         for course in all_courses:
-            # For each course, find all semesters it's offered in
             course_id = course[0]
+            # get all semester offerings for a course
             cur.execute("""
                 SELECT DISTINCT semester FROM enrollments 
                 WHERE course_id = %s
@@ -697,7 +693,7 @@ def course_offerings():
             # Get all semesters for this course
             semesters = [row[0] for row in cur.fetchall()]
 
-            # For each semester, count actual student enrollments
+            # count enrolled students for a course in a specific semester
             for semester in semesters:
                 cur.execute("""
                     SELECT COUNT(*) FROM enrollments
@@ -705,7 +701,6 @@ def course_offerings():
                 """, (course_id, semester))
                 enrolled_count = cur.fetchone()[0]
 
-                # Create course entry with all needed info
                 course_entry = {
                     'course_id': course[0],
                     'course_name': course[1],
@@ -714,7 +709,6 @@ def course_offerings():
                     'enrolled_count': enrolled_count
                 }
 
-                # Add to courses_by_semester structure
                 if semester not in courses_by_semester:
                     courses_by_semester[semester] = {}
 
@@ -724,18 +718,11 @@ def course_offerings():
 
                 courses_by_semester[semester][department].append(course_entry)
 
-        # Define the order in which semesters should be displayed
-        # Order from newest to oldest, with years grouped together
         semester_order = [
-            # 2027 Academic Year
             'Fall 2027', 'Spring 2027', 'Winter 2027',
-            # 2026 Academic Year
             'Fall 2026', 'Spring 2026', 'Winter 2026',
-            # 2025 Academic Year
             'Fall 2025', 'Spring 2025', 'Winter 2025',
-            # 2024 Academic Year
             'Fall 2024', 'Spring 2024', 'Winter 2024',
-            # 2023 Academic Year
             'Fall 2023'
         ]
 
